@@ -1,576 +1,1100 @@
-"use strict";
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>La Tiendita - Tu tienda de barrio inteligente</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-// ==============================================
-// EVA v13.0 - MEMORIA ACTIVA + AUTOEDUCACIÓN + JEFE MODE
-// DUEÑO: KLEINER SUAREZ - ID BLINDADO: 185697273159837@lid
-// ==============================================
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #111111;
+            --bg-card: #1a1a1a;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --accent-gold: #d4af37;
+            --accent-gold-dark: #b8960c;
+            --accent-gold-light: #f0d060;
+            --border: #2a2a2a;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --whatsapp: #25D366;
+            --whatsapp-dark: #128C7E;
+            --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
 
-require('dotenv').config();
+        [data-theme="light"] {
+            --bg-primary: #f5f0e8;
+            --bg-secondary: #ffffff;
+            --bg-card: #ffffff;
+            --text-primary: #1a1a1a;
+            --text-secondary: #666666;
+            --border: #e0e0e0;
+        }
 
-const { Client, LocalAuth, MessageMedia } = require("whatsapp-web.js");
-const fs = require("fs");
-const fse = require("fs-extra");
-const path = require("path");
-const axios = require("axios");
-const Database = require('better-sqlite3');
-const qrcode = require('qrcode-terminal');
-const cron = require('node-cron');
-const { execSync } = require("child_process");
-const { createWorker } = require('tesseract.js');
-const PDFDocument = require("pdfkit");
-const sharp = require("sharp");
-const natural = require('natural');
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background 0.3s, color 0.3s;
+            overflow-x: hidden;
+        }
 
-// ==============================================
-// VARIABLES DE ENTORNO (.env)
-// ==============================================
-const CONFIG = {
-    GROQ_KEYS: [
-        process.env.GROQ_API_KEY_1,
-        process.env.GROQ_API_KEY_2,
-        process.env.GROQ_API_KEY_3
-    ].filter(Boolean),
-    
-    META_APP_ID: process.env.META_APP_ID,
-    META_APP_SECRET: process.env.META_APP_SECRET,
-    META_ACCESS_TOKEN: process.env.META_ACCESS_TOKEN,
-    FACEBOOK_PAGE_ID: process.env.FACEBOOK_PAGE_ID,
-    INSTAGRAM_BUSINESS_ID: process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID,
-    
-    TIKTOK_CLIENT_KEY: process.env.TIKTOK_CLIENT_KEY,
-    TIKTOK_CLIENT_SECRET: process.env.TIKTOK_CLIENT_SECRET,
-    TIKTOK_ACCESS_TOKEN: process.env.TIKTOK_ACCESS_TOKEN,
-    TIKTOK_OPEN_ID: process.env.TIKTOK_OPEN_ID,
-    
-    TWITTER_API_KEY: process.env.TWITTER_API_KEY,
-    TWITTER_API_SECRET: process.env.TWITTER_API_SECRET,
-    TWITTER_ACCESS_TOKEN: process.env.TWITTER_ACCESS_TOKEN,
-    TWITTER_ACCESS_SECRET: process.env.TWITTER_ACCESS_SECRET,
-    TWITTER_BEARER_TOKEN: process.env.TWITTER_BEARER_TOKEN,
-    
-    LINKEDIN_CLIENT_ID: process.env.LINKEDIN_CLIENT_ID,
-    LINKEDIN_CLIENT_SECRET: process.env.LINKEDIN_CLIENT_SECRET,
-    LINKEDIN_ACCESS_TOKEN: process.env.LINKEDIN_ACCESS_TOKEN,
-    LINKEDIN_ORGANIZATION_ID: process.env.LINKEDIN_ORGANIZATION_ID,
-    
-    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
-    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
-    GOOGLE_REFRESH_TOKEN: process.env.GOOGLE_REFRESH_TOKEN,
-    GOOGLE_CALENDAR_ID: process.env.GOOGLE_CALENDAR_ID,
-    
-    // ========== JEFE (BLINDEADO) ==========
-    OWNER_NUMBER: "185697273159837@lid",  // TU ID - NUNCA SERÁ CLIENTE
-    OWNER_NAME: process.env.OWNER_NAME || "Kleiner Suarez",
-    OWNER_BIRTHDATE: process.env.OWNER_BIRTHDATE || "1995-07-25",
-    
-    EVA_NUMBER: process.env.EVA_NUMBER || "593985037366@c.us",
-    TIENDITA_NUMBER: process.env.TIENDITA_NUMBER || "593986911774@c.us",
-    ADMIN_CLIENTES_NUMBER: process.env.ADMIN_CLIENTES_NUMBER || "593982855833@c.us",
-    
-    DB_PATH: process.env.DB_PATH || "./eva_database.db"
-};
+        /* Loader */
+        .loader-wrapper {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            transition: opacity 0.5s;
+        }
+        .loader {
+            width: 60px; height: 60px;
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--accent-gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-// ==============================================
-// 🧠 SISTEMA DE MEMORIA ACTIVA (NUEVO)
-// ==============================================
-class MemoriaActiva {
-    constructor(db) {
-        this.db = db;
-        this.memoriaCorta = new Map(); // Sesión actual
-        this._inicializarTablas();
-    }
+        /* Header */
+        header {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+            padding: 60px 20px 40px;
+            text-align: center;
+            border-bottom: 3px solid var(--accent-gold);
+            position: relative;
+            overflow: hidden;
+        }
+        header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(212,175,55,0.08) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        
+        .header-abuelos { font-size: 4rem; margin-bottom: 10px; animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+        
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 4rem;
+            background: linear-gradient(135deg, var(--accent-gold), #fff, var(--accent-gold));
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shine 3s linear infinite;
+        }
+        @keyframes shine { to { background-position: 200% center; } }
+
+        /* Navbar */
+        nav {
+            position: sticky;
+            top: 0;
+            background: var(--bg-secondary);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            z-index: 1000;
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+        }
+        .nav-brand {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            color: var(--accent-gold);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+        .nav-controls { display: flex; gap: 12px; align-items: center; }
+        .theme-toggle, .admin-toggle, .cart-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            width: 45px; height: 45px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .theme-toggle:hover, .admin-toggle:hover, .cart-btn:hover {
+            border-color: var(--accent-gold);
+            color: var(--accent-gold);
+            transform: scale(1.05);
+        }
+        .cart-count {
+            position: absolute;
+            top: -5px; right: -5px;
+            background: var(--accent-gold);
+            color: black;
+            font-size: 0.7rem;
+            font-weight: bold;
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .cart-btn { position: relative; }
+
+        /* Admin Panel */
+        .admin-panel {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            border: 2px solid var(--accent-gold);
+            display: none;
+        }
+        .admin-panel.active { display: block; animation: slideDown 0.3s ease; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
+        .admin-title { font-family: 'Playfair Display', serif; color: var(--accent-gold); }
+        .add-product-btn {
+            background: var(--accent-gold);
+            color: black;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .add-product-btn:hover { transform: scale(1.05); background: var(--accent-gold-light); }
+        .admin-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .admin-stat {
+            background: var(--bg-card);
+            padding: 15px;
+            border-radius: 15px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+        .admin-stat-value { font-size: 2rem; font-weight: bold; color: var(--accent-gold); }
+        .admin-products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .admin-product-item {
+            background: var(--bg-card);
+            padding: 15px;
+            border-radius: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            border: 1px solid var(--border);
+        }
+        .admin-product-info { flex: 1; }
+        .admin-product-name { font-weight: bold; }
+        .admin-product-code { font-size: 0.7rem; color: var(--text-secondary); font-family: monospace; }
+        .admin-product-actions { display: flex; gap: 8px; }
+        .admin-edit, .admin-delete {
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: none;
+            font-size: 0.8rem;
+            transition: all 0.3s;
+        }
+        .admin-edit { background: var(--accent-gold); color: black; }
+        .admin-delete { background: var(--danger); color: white; }
+        .admin-edit:hover, .admin-delete:hover { transform: scale(1.05); }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(5px);
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: var(--bg-secondary);
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 90%;
+            border: 2px solid var(--accent-gold);
+        }
+        .modal-content h3 { margin-bottom: 20px; color: var(--accent-gold); }
+        .modal-content input, .modal-content select {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif;
+        }
+        .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; }
+        .modal-buttons button {
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            border: none;
+        }
+        .modal-save { background: var(--success); color: white; }
+        .modal-cancel { background: var(--danger); color: white; }
+
+        /* Búsqueda y filtros */
+        .search-section {
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .search-input {
+            flex: 1;
+            padding: 15px 20px;
+            border-radius: 50px;
+            border: 2px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+        .search-input:focus { outline: none; border-color: var(--accent-gold); }
+        .search-btn {
+            background: var(--accent-gold);
+            color: black;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .filters {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .filter-btn {
+            background: transparent;
+            border: 2px solid var(--border);
+            color: var(--text-secondary);
+            padding: 8px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .filter-btn:hover, .filter-btn.active {
+            border-color: var(--accent-gold);
+            color: var(--accent-gold);
+            background: rgba(212,175,55,0.1);
+        }
+
+        /* Carrusel */
+        .carousel-wrapper {
+            max-width: 1000px;
+            margin: 40px auto;
+            overflow: hidden;
+            border-radius: 20px;
+            border: 2px solid var(--border);
+        }
+        .carousel-inner { display: flex; transition: transform 0.5s ease; }
+        .carousel-slide {
+            min-width: 100%;
+            padding: 40px;
+            text-align: center;
+            background: linear-gradient(135deg, var(--bg-card), var(--bg-secondary));
+        }
+        .carousel-slide .emoji { font-size: 4rem; display: block; margin-bottom: 15px; }
+        .carousel-slide h3 { font-family: 'Playfair Display', serif; color: var(--accent-gold); font-size: 1.5rem; }
+        .carousel-slide .price { font-size: 2.5rem; font-weight: bold; color: var(--accent-gold); }
+        .carousel-dots { display: flex; justify-content: center; gap: 10px; padding: 15px; }
+        .carousel-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: var(--border);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .carousel-dot.active { background: var(--accent-gold); width: 30px; border-radius: 10px; }
+
+        /* Productos */
+        .container { max-width: 1400px; margin: 0 auto; padding: 0 20px 40px; }
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            text-align: center;
+            margin: 50px 0 30px;
+            color: var(--accent-gold);
+        }
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+        }
+        .product-card {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+            position: relative;
+            cursor: pointer;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-gold);
+            box-shadow: var(--shadow);
+        }
+        .product-image {
+            width: 100%;
+            height: 200px;
+            background: var(--bg-secondary);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            margin-bottom: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .image-upload-hint {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            background: rgba(0,0,0,0.7);
+            font-size: 0.6rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            display: none;
+        }
+        .product-card:hover .image-upload-hint { display: block; }
+        .stock-badge {
+            position: absolute;
+            top: 10px; right: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.7rem;
+            border: 1px solid var(--accent-gold);
+        }
+        .stock-badge.low { border-color: var(--danger); color: var(--danger); }
+        .product-category {
+            color: var(--accent-gold);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .product-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        .product-price {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--accent-gold);
+            margin: 10px 0;
+        }
+        .product-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .btn-cart {
+            flex: 1;
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-gold-dark));
+            color: black;
+            border: none;
+            padding: 12px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .btn-cart:hover { transform: scale(1.02); box-shadow: 0 5px 15px rgba(212,175,55,0.3); }
+        .btn-whatsapp {
+            background: var(--whatsapp);
+            color: white;
+            width: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        .btn-whatsapp:hover { transform: scale(1.1); }
+
+        /* QR Section */
+        .qr-section {
+            text-align: center;
+            padding: 40px;
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            margin: 40px auto;
+            max-width: 400px;
+        }
+        .qr-code {
+            font-size: 8rem;
+            margin: 20px 0;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent-gold);
+            color: black;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-weight: bold;
+            z-index: 3000;
+            display: none;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp { from { transform: translateX(-50%) translateY(100px); } to { transform: translateX(-50%) translateY(0); } }
+        .toast.show { display: block; }
+
+        /* Whatsapp Float */
+        .whatsapp-float {
+            position: fixed;
+            bottom: 20px; right: 20px;
+            background: var(--whatsapp);
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            text-decoration: none;
+            box-shadow: 0 5px 20px rgba(37,211,102,0.4);
+            z-index: 100;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+        }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 2.5rem; }
+            .products-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; }
+            .product-card { padding: 12px; }
+            .product-image { height: 120px; font-size: 2.5rem; }
+            .product-name { font-size: 0.9rem; }
+            .product-price { font-size: 1.2rem; }
+            .btn-cart { padding: 8px; font-size: 0.7rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="loader-wrapper" id="loader">
+    <div class="loader"></div>
+</div>
+
+<header>
+    <div class="header-abuelos">👴🏻🏪👵🏻</div>
+    <h1>La Tiendita</h1>
+    <p>Tu tienda de barrio, precios justos</p>
+    <div class="subtitle">📍 Paján, Manabí · 🚗 Domicilio · ⭐ 4.9 estrellas</div>
+</header>
+
+<nav>
+    <div class="nav-brand" id="logoClick">
+        <span>👴🏻🏪</span>
+        <span>La Tiendita</span>
+    </div>
+    <div class="nav-controls">
+        <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+        <button class="admin-toggle" onclick="toggleAdmin()">⚙️</button>
+        <button class="cart-btn" onclick="irAWhatsApp()">
+            🛒
+            <span class="cart-count" id="cartCount">0</span>
+        </button>
+    </div>
+</nav>
+
+<!-- Admin Panel -->
+<div class="admin-panel" id="adminPanel">
+    <div class="admin-header">
+        <h2 class="admin-title">⚙️ Panel de Administración</h2>
+        <button class="add-product-btn" onclick="showAddProductModal()">➕ Agregar Producto</button>
+    </div>
+    <div class="admin-stats" id="adminStats"></div>
+    <div class="admin-products-grid" id="adminProductsGrid"></div>
+</div>
+
+<!-- Search -->
+<div class="search-section">
+    <div class="search-box">
+        <input type="text" class="search-input" id="searchInput" placeholder="🔍 Buscar productos... (nombre, categoría, código)" oninput="buscarProductos()">
+        <button class="search-btn" onclick="buscarProductos()">Buscar</button>
+    </div>
+    <div class="filters" id="filters"></div>
+</div>
+
+<!-- Carrusel Ofertas -->
+<div class="carousel-wrapper">
+    <div class="carousel-inner" id="carouselInner"></div>
+    <div class="carousel-dots" id="carouselDots"></div>
+</div>
+
+<!-- Productos -->
+<div class="container">
+    <h2 class="section-title">🛒 Todos los Productos</h2>
+    <div class="products-grid" id="productsGrid"></div>
+</div>
+
+<div class="container">
+    <h2 class="section-title">⭐ Más Vendidos</h2>
+    <div class="products-grid" id="bestSellersGrid"></div>
+</div>
+
+<!-- QR Code -->
+<div class="qr-section">
+    <div class="qr-code">📱</div>
+    <h3>Pedidos por WhatsApp</h3>
+    <p>Escanea el código QR en nuestra puerta o haz clic en el botón flotante</p>
+    <button class="btn-cart" onclick="irAWhatsAppDirecto()" style="margin-top: 15px;">📲 Pedir ahora</button>
+</div>
+
+<!-- Modal para editar/agregar producto -->
+<div class="modal" id="productModal">
+    <div class="modal-content">
+        <h3 id="modalTitle">✏️ Editar Producto</h3>
+        <input type="hidden" id="editProductId">
+        <input type="text" id="editNombre" placeholder="Nombre del producto">
+        <input type="text" id="editCorto" placeholder="Nombre corto">
+        <input type="text" id="editPresentacion" placeholder="Presentación">
+        <input type="number" id="editPrecio" placeholder="Precio de venta" step="0.01">
+        <input type="number" id="editStock" placeholder="Stock">
+        <input type="text" id="editCategoria" placeholder="Categoría">
+        <input type="text" id="editEmoji" placeholder="Emoji (ej: 🍪)">
+        <div class="modal-buttons">
+            <button class="modal-save" onclick="guardarProducto()">💾 Guardar</button>
+            <button class="modal-cancel" onclick="closeModal()">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<a href="https://wa.me/593986911774" class="whatsapp-float" target="_blank">💬</a>
+
+<footer>
+    <p>📍 Eloy Alfaro y 7 de Noviembre, Paján, Manabí</p>
+    <p>📞 +593 98 691 1774 · ⏰ Lun-Sáb 8AM-7PM</p>
+    <p>© 2026 La Tiendita - Atendemos con amor</p>
+</footer>
+
+<script>
+    // ============================================
+    // DATOS INICIALES
+    // ============================================
+    const PRODUCTOS_INICIALES = [
+        { id: 1, codigo: "AMOR-PEK", nombre: "Amor Wafers Pekes", corto: "Wafer Pekes", presentacion: "76x75g", precio: 0.65, stock: 30, categoria: "Dulces", emoji: "🍪", imagen: "", vendidos: 45 },
+        { id: 2, codigo: "AMOR-FRE", nombre: "Amor Wafer Fresa", corto: "Wafer Fresa", presentacion: "76x75g", precio: 0.65, stock: 25, categoria: "Dulces", emoji: "🍓", imagen: "", vendidos: 38 },
+        { id: 3, codigo: "AMOR-CHO", nombre: "Amor Wafer Chocolate", corto: "Wafer Choco", presentacion: "120x50g", precio: 0.65, stock: 20, categoria: "Dulces", emoji: "🍫", imagen: "", vendidos: 52 },
+        { id: 4, codigo: "AMOR-VAI", nombre: "Amor Wafer Vainilla", corto: "Wafer Vainilla", presentacion: "120x50g", precio: 0.65, stock: 20, categoria: "Dulces", emoji: "🍦", imagen: "", vendidos: 30 },
+        { id: 5, codigo: "NES-COC", nombre: "Nestlé Galleta Coco", corto: "Galleta Coco", presentacion: "18x540g", precio: 4.25, stock: 10, categoria: "Dulces", emoji: "🥥", imagen: "", vendidos: 15 },
+        { id: 6, codigo: "NES-MIN", nombre: "Nest María Galleta Mini", corto: "María Mini", presentacion: "40x92g", precio: 0.67, stock: 15, categoria: "Dulces", emoji: "🍘", imagen: "", vendidos: 60 },
+        { id: 7, codigo: "CRO-CHO", nombre: "Croferos Chocolate", corto: "Croferos Choco", presentacion: "25G 180U", precio: 0.45, stock: 24, categoria: "Dulces", emoji: "🍫", imagen: "", vendidos: 80 },
+        { id: 8, codigo: "CRO-COC", nombre: "Croferos Coco", corto: "Croferos Coco", presentacion: "25G 180U", precio: 0.45, stock: 18, categoria: "Dulces", emoji: "🥥", imagen: "", vendidos: 55 },
+        { id: 9, codigo: "CRO-FRE", nombre: "Croferos Fresa", corto: "Croferos Fresa", presentacion: "25G 180U", precio: 0.45, stock: 20, categoria: "Dulces", emoji: "🍓", imagen: "", vendidos: 70 },
+        { id: 10, codigo: "PRO-CHO", nombre: "Profers Chomax Avellana", corto: "Profers Avellana", presentacion: "6X25G160", precio: 1.85, stock: 6, categoria: "Dulces", emoji: "🌰", imagen: "", vendidos: 12 },
+        { id: 11, codigo: "COC-30", nombre: "Coca-Cola 30ml", corto: "Coca 30ml", presentacion: "RCB (24)", precio: 1.10, stock: 50, categoria: "Bebidas", emoji: "🥤", imagen: "", vendidos: 25 },
+        { id: 12, codigo: "COC-500", nombre: "Coca-Cola 500ml", corto: "Coca 500ml", presentacion: "RCB (24)", precio: 1.30, stock: 40, categoria: "Bebidas", emoji: "🥤", imagen: "", vendidos: 90 },
+        { id: 13, codigo: "COC-1000", nombre: "Coca-Cola 1000ml", corto: "Coca 1L", presentacion: "RCB (24)", precio: 1.80, stock: 30, categoria: "Bebidas", emoji: "🥤", imagen: "", vendidos: 65 },
+        { id: 14, codigo: "PAL-ACH", nombre: "Palma Oro Achiote 200ml", corto: "Achiote 200ml", presentacion: "CART C6", precio: 1.15, stock: 15, categoria: "Aceites", emoji: "🫒", imagen: "", vendidos: 20 },
+        { id: 15, codigo: "PAL-350", nombre: "Palma Oro 350ml", corto: "Palma Oro", presentacion: "GOB CART C6", precio: 1.00, stock: 12, categoria: "Aceites", emoji: "🫒", imagen: "", vendidos: 35 },
+        { id: 16, codigo: "MAG-SAL", nombre: "Maggi Salsa de Tomate", corto: "Salsa Tomate", presentacion: "170g", precio: 1.00, stock: 12, categoria: "Alimentos", emoji: "🍅", imagen: "", vendidos: 32 },
+        { id: 17, codigo: "REG-MAR", nombre: "Regla Margarina", corto: "Margarina", presentacion: "50g", precio: 2.55, stock: 5, categoria: "Alimentos", emoji: "🧈", imagen: "", vendidos: 8 },
+        { id: 18, codigo: "FID-AMA-SPA", nombre: "Fideos Amanda Spaghetti", corto: "Spaghetti", presentacion: "200g", precio: 0.65, stock: 20, categoria: "Fideos", emoji: "🍝", imagen: "", vendidos: 30 },
+        { id: 19, codigo: "DET-SUR-225", nombre: "Surf Detergente", corto: "Surf 225g", presentacion: "225g", precio: 0.50, stock: 30, categoria: "Limpieza", emoji: "🧼", imagen: "", vendidos: 55 },
+        { id: 20, codigo: "SAN-LAV", nombre: "Sanson Desinfectante Lavanda", corto: "Sanson Lavanda", presentacion: "250ml", precio: 0.50, stock: 16, categoria: "Limpieza", emoji: "🧹", imagen: "", vendidos: 22 },
+    ];
+
+    // Cargar o inicializar datos
+    let productos = [];
+    let carrito = [];
+    let busquedaActual = '';
+    let filtroActual = 'Todos';
+    let carouselIndex = 0;
+    let autoCarouselInterval;
+
+    // ============================================
+    // FUNCIONES PRINCIPALES
+    // ============================================
     
-    _inicializarTablas() {
-        this.db.exec(`
-            CREATE TABLE IF NOT EXISTS memoria_larga (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                usuario TEXT,
-                tipo TEXT,
-                clave TEXT,
-                valor TEXT,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (usuario) REFERENCES usuarios(telefono)
-            );
-            
-            CREATE TABLE IF NOT EXISTS conversaciones (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                usuario TEXT,
-                mensaje TEXT,
-                respuesta TEXT,
-                intencion TEXT,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-            );
-            
-            CREATE TABLE IF NOT EXISTS aprendizaje (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                pregunta TEXT UNIQUE,
-                respuesta TEXT,
-                fuente TEXT,
-                veces_usado INTEGER DEFAULT 1,
-                ultimo_uso DATETIME DEFAULT CURRENT_TIMESTAMP
-            );
-        `);
-        console.log('🧠 Memoria activa inicializada');
-    }
-    
-    // Guardar recuerdo
-    recordar(usuario, tipo, clave, valor) {
-        const existe = this.db.prepare('SELECT id FROM memoria_larga WHERE usuario = ? AND clave = ?').get(usuario, clave);
-        if (existe) {
-            this.db.prepare('UPDATE memoria_larga SET valor = ?, timestamp = CURRENT_TIMESTAMP WHERE usuario = ? AND clave = ?').run(valor, usuario, clave);
+    function cargarDatos() {
+        const guardados = localStorage.getItem('latiendita_productos');
+        if (guardados) {
+            productos = JSON.parse(guardados);
         } else {
-            this.db.prepare('INSERT INTO memoria_larga (usuario, tipo, clave, valor) VALUES (?, ?, ?, ?)').run(usuario, tipo, clave, valor);
+            productos = [...PRODUCTOS_INICIALES];
+            guardarDatos();
         }
         
-        // También guardar en memoria corta
-        if (!this.memoriaCorta.has(usuario)) {
-            this.memoriaCorta.set(usuario, new Map());
-        }
-        this.memoriaCorta.get(usuario).set(clave, valor);
-    }
-    
-    // Recuperar recuerdo
-    olvidar(usuario, clave) {
-        const record = this.db.prepare('SELECT valor FROM memoria_larga WHERE usuario = ? AND clave = ?').get(usuario, clave);
-        return record ? record.valor : null;
-    }
-    
-    // Recordar conversación completa
-    recordarConversacion(usuario) {
-        return this.db.prepare(`
-            SELECT mensaje, respuesta, intencion, timestamp 
-            FROM conversaciones 
-            WHERE usuario = ? 
-            ORDER BY timestamp DESC 
-            LIMIT 20
-        `).all(usuario);
-    }
-    
-    // Guardar conversación
-    guardarConversacion(usuario, mensaje, respuesta, intencion) {
-        this.db.prepare(`
-            INSERT INTO conversaciones (usuario, mensaje, respuesta, intencion) 
-            VALUES (?, ?, ?, ?)
-        `).run(usuario, mensaje, respuesta, intencion);
-    }
-    
-    // Autoaprendizaje - guardar conocimiento nuevo
-    aprender(pregunta, respuesta, fuente = 'ia') {
-        const existe = this.db.prepare('SELECT id FROM aprendizaje WHERE pregunta = ?').get(pregunta);
-        if (existe) {
-            this.db.prepare('UPDATE aprendizaje SET veces_usado = veces_usado + 1, ultimo_uso = CURRENT_TIMESTAMP WHERE pregunta = ?').run(pregunta);
-        } else {
-            this.db.prepare('INSERT INTO aprendizaje (pregunta, respuesta, fuente) VALUES (?, ?, ?)').run(pregunta, respuesta, fuente);
+        const carritoGuardado = localStorage.getItem('latiendita_carrito');
+        if (carritoGuardado) {
+            carrito = JSON.parse(carritoGuardado);
         }
     }
     
-    // Buscar en conocimiento aprendido
-    buscarConocimiento(pregunta) {
-        // Búsqueda exacta o similar
-        const exacto = this.db.prepare('SELECT respuesta FROM aprendizaje WHERE pregunta LIKE ? ORDER BY veces_usado DESC LIMIT 1').get(`%${pregunta}%`);
-        return exacto ? exacto.respuesta : null;
+    function guardarDatos() {
+        localStorage.setItem('latiendita_productos', JSON.stringify(productos));
+        localStorage.setItem('latiendita_carrito', JSON.stringify(carrito));
     }
     
-    // Contexto completo para IA
-    getContextoCompleto(usuario) {
-        const historial = this.recordarConversacion(usuario);
-        const preferencias = {
-            nombre: this.olvidar(usuario, 'nombre'),
-            gustos: this.olvidar(usuario, 'gustos'),
-            ultimoTema: this.olvidar(usuario, 'ultimo_tema')
-        };
-        
-        return { historial, preferencias };
-    }
-}
-
-// ==============================================
-// 🤖 SISTEMA DE AUTOEDUCACIÓN (3 AGENTES GROQ)
-// ==============================================
-class AutoEducacion {
-    constructor(groqKeys, memoria) {
-        this.groqKeys = groqKeys;
-        this.memoria = memoria;
-        this.keyIndex = 0;
+    function guardarCarrito() {
+        localStorage.setItem('latiendita_carrito', JSON.stringify(carrito));
+        actualizarContadorCarrito();
     }
     
-    getNextKey() {
-        return this.groqKeys[this.keyIndex++ % this.groqKeys.length];
+    function actualizarContadorCarrito() {
+        const total = carrito.reduce((s, p) => s + p.cantidad, 0);
+        document.getElementById('cartCount').textContent = total;
     }
     
-    async consultarGroq(prompt, contexto = 'general') {
-        const apiKey = this.getNextKey();
-        try {
-            const response = await axios.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                {
-                    model: "llama-3.3-70b-versatile",
-                    messages: [
-                        { role: "system", content: `Eres EVA, asistente virtual de ${CONFIG.OWNER_NAME}. Contexto: ${contexto}` },
-                        { role: "user", content: prompt }
-                    ],
-                    max_tokens: 800,
-                    temperature: 0.7
-                },
-                {
-                    headers: { Authorization: `Bearer ${apiKey}` },
-                    timeout: 20000
-                }
-            );
-            return response.data.choices[0].message.content.trim();
-        } catch (error) {
-            console.error('Error Groq:', error.message);
-            return null;
-        }
+    function mostrarToast(mensaje) {
+        const toast = document.getElementById('toast');
+        toast.textContent = mensaje;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2000);
     }
     
-    // Los 3 agentes debaten para dar la MEJOR respuesta
-    async deliberacionMultiAgente(pregunta, contexto = '') {
-        console.log('🧠 Iniciando deliberación multi-agente...');
-        
-        // Agente 1: Analista
-        const prompt1 = `Eres un ANALISTA EXPERTO. Tu trabajo es descomponer esta pregunta en sus partes esenciales y listar los puntos clave a considerar. No des la respuesta final aún. Pregunta: "${pregunta}" Contexto: ${contexto}`;
-        
-        // Agente 2: Creativo
-        const prompt2 = `Eres un ESTRATEGA CREATIVO. Tu trabajo es pensar en soluciones innovadoras y perspectivas únicas para esta pregunta. No des la respuesta final aún. Pregunta: "${pregunta}" Contexto: ${contexto}`;
-        
-        // Agente 3: Crítico
-        const prompt3 = `Eres un ANALISTA CRÍTICO. Tu trabajo es encontrar posibles fallos, riesgos y contraargumentos a cualquier solución propuesta. No des la respuesta final aún. Pregunta: "${pregunta}" Contexto: ${contexto}`;
-        
-        // Ejecutar los 3 agentes en paralelo
-        const [analisis, creatividad, critica] = await Promise.all([
-            this.consultarGroq(prompt1, 'analista'),
-            this.consultarGroq(prompt2, 'creativo'),
-            this.consultarGroq(prompt3, 'critico')
-        ]);
-        
-        console.log('✅ Agentes respondieron, sintetizando...');
-        
-        // Síntesis: El agente principal (jefe) combina los 3
-        const promptSintesis = `Eres el ASISTENTE PRINCIPAL de ${CONFIG.OWNER_NAME}. Tu trabajo es sintetizar estos 3 análisis en una RESPUESTA ÚNICA, COMPLETA y ACCIONABLE para tu JEFE.
-        
-        ANÁLISIS DEL ANALISTA:
-        ${analisis}
-        
-        APORTE DEL ESTRATEGA:
-        ${creatividad}
-        
-        CRÍTICA DEL ANALISTA CRÍTICO:
-        ${critica}
-        
-        INSTRUCCIONES:
-        1. Combina lo mejor de cada análisis
-        2. Da una respuesta clara, directa y útil
-        3. Si aplica, incluye pasos concretos a seguir
-        4. Mantén el tono profesional pero cercano (es tu JEFE)
-        5. Responde en ESPAÑOL
-        
-        PREGUNTA ORIGINAL: "${pregunta}"`;
-        
-        const respuestaFinal = await this.consultarGroq(promptSintesis, 'sintetizador');
-        
-        // Guardar en memoria de aprendizaje
-        if (respuestaFinal) {
-            this.memoria.aprender(pregunta.toLowerCase(), respuestaFinal, 'multi-agente');
-        }
-        
-        return respuestaFinal || this.consultarGroq(pregunta, 'general');
-    }
-}
-
-// ==============================================
-// 📈 FUNCIONES DE DATOS REALES
-// ==============================================
-
-async function getClimaReal() {
-    try {
-        const response = await axios.get('https://api.open-meteo.com/v1/forecast', {
-            params: { latitude: -2.1962, longitude: -79.8862, current_weather: true, hourly: 'temperature_2m,relativehumidity_2m', timezone: 'America/Guayaquil' },
-            timeout: 8000
-        });
-        const weather = response.data.current_weather;
-        const temp = Math.round(weather.temperature);
-        const windSpeed = Math.round(weather.windspeed);
-        let windDir = "↗";
-        if (weather.winddirection) {
-            const dir = weather.winddirection;
-            if (dir >= 315 || dir < 45) windDir = "⬆️";
-            else if (dir >= 45 && dir < 135) windDir = "➡️";
-            else if (dir >= 135 && dir < 225) windDir = "⬇️";
-            else windDir = "⬅️";
-        }
-        const humidity = response.data.hourly?.relativehumidity_2m?.[0] || 75;
-        const climaTexto = temp > 30 ? "☀️ Soleado" : temp > 25 ? "⛅ Parcialmente nublado" : "🌥️ Nublado";
-        return `🌤️ *CLIMA GUAYAQUIL*\n${climaTexto} +${temp}°C Humedad:${humidity}% Viento:${windDir}${windSpeed}km/h`;
-    } catch (error) {
-        return `🌤️ *CLIMA GUAYAQUIL*\nPartly cloudy +25°C Humedad:79% Viento:↗7km/h`;
-    }
-}
-
-async function getAccionesReales() {
-    const symbols = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA', 'NVDA', 'META'];
-    const resultados = [];
-    for (const symbol of symbols) {
-        try {
-            const response = await axios.get(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}`, { timeout: 5000 });
-            const result = response.data.chart.result[0];
-            const meta = result.meta;
-            const price = meta.regularMarketPrice;
-            const previousClose = meta.previousClose || price;
-            const change = price - previousClose;
-            const changePercent = (change / previousClose * 100).toFixed(2);
-            const signo = change >= 0 ? '🟢' : '🔴';
-            const nombres = { AAPL: 'Apple', GOOGL: 'Google', MSFT: 'Microsoft', AMZN: 'Amazon', TSLA: 'Tesla', NVDA: 'Nvidia', META: 'Meta' };
-            resultados.push(`• ${nombres[symbol]} (${symbol}): $${price.toFixed(2)} ${signo} ${change >= 0 ? '+' : ''}${change.toFixed(2)} (${changePercent}%)`);
-        } catch (e) {
-            const fallbacks = { AAPL: [271.06, -2.37, -0.87], GOOGL: [344.40, 5.51, 1.63], MSFT: [424.60, 8.83, 2.12], AMZN: [263.99, 8.91, 3.49], TSLA: [376.30, 2.58, 0.69], NVDA: [208.26, 8.61, 4.31], META: [675.05, 15.92, 2.42] };
-            const fb = fallbacks[symbol];
-            const signo = fb[1] >= 0 ? '🟢' : '🔴';
-            const nombres = { AAPL: 'Apple', GOOGL: 'Google', MSFT: 'Microsoft', AMZN: 'Amazon', TSLA: 'Tesla', NVDA: 'Nvidia', META: 'Meta' };
-            resultados.push(`• ${nombres[symbol]} (${symbol}): $${fb[0]} ${signo} ${fb[1] >= 0 ? '+' : ''}${fb[1]} (${fb[2]}%)`);
-        }
-    }
-    return resultados.join('\n');
-}
-
-async function getFuturosReales() {
-    const symbols = [{ symbol: 'ES=F', name: 'S&P500' }, { symbol: 'NQ=F', name: 'Nasdaq' }, { symbol: 'YM=F', name: 'Dow Jones' }, { symbol: 'GC=F', name: 'Oro' }, { symbol: 'CL=F', name: 'Petróleo' }, { symbol: 'SI=F', name: 'Plata' }];
-    const resultados = [];
-    for (const item of symbols) {
-        try {
-            const response = await axios.get(`https://query1.finance.yahoo.com/v8/finance/chart/${item.symbol}`, { timeout: 5000 });
-            const result = response.data.chart.result[0];
-            const meta = result.meta;
-            const price = meta.regularMarketPrice;
-            const previousClose = meta.previousClose || price;
-            const change = price - previousClose;
-            const signo = change >= 0 ? '🟢' : '🔴';
-            resultados.push(`• ${item.name}: $${price.toFixed(2)} ${signo} ${change >= 0 ? '+' : ''}${change.toFixed(2)}`);
-        } catch (e) {
-            const fallbacks = { 'ES=F': [7191.50, -3.25], 'NQ=F': [27429.25, -5.75], 'YM=F': [49348.00, -44.00], 'GC=F': [4719.10, -21.80], 'CL=F': [96.17, 1.77], 'SI=F': [75.48, -0.93] };
-            const fb = fallbacks[item.symbol];
-            const signo = fb[1] >= 0 ? '🟢' : '🔴';
-            resultados.push(`• ${item.name}: $${fb[0]} ${signo} ${fb[1] >= 0 ? '+' : ''}${fb[1]}`);
-        }
-    }
-    return resultados.join('\n');
-}
-
-async function getCriptoReales() {
-    const coins = ['bitcoin', 'ethereum', 'solana', 'binancecoin', 'ripple'];
-    const nombres = { bitcoin: 'BTC', ethereum: 'ETH', solana: 'SOL', binancecoin: 'BNB', ripple: 'XRP' };
-    const resultados = [];
-    try {
-        const response = await axios.get('https://api.coingecko.com/api/v3/simple/price', { params: { ids: coins.join(','), vs_currencies: 'usd', include_24hr_change: true }, timeout: 5000 });
-        for (const coin of coins) {
-            const data = response.data[coin];
-            if (data) {
-                const price = data.usd;
-                const change = data.usd_24h_change || 0;
-                const signo = change >= 0 ? '🟢' : '🔴';
-                const precioFormateado = coin === 'bitcoin' ? `$${Math.round(price).toLocaleString()}` : `$${price.toLocaleString()}`;
-                resultados.push(`• ${nombres[coin]} ${precioFormateado} ${signo} ${change >= 0 ? '+' : ''}${change.toFixed(2)}%`);
+    // ============================================
+    // CARRITO
+    // ============================================
+    
+    function agregarAlCarrito(producto) {
+        const existente = carrito.find(p => p.id === producto.id);
+        if (existente) {
+            if (existente.cantidad < producto.stock) {
+                existente.cantidad++;
+            } else {
+                mostrarToast('⚠️ Stock máximo alcanzado');
+                return;
             }
+        } else {
+            carrito.push({ ...producto, cantidad: 1 });
         }
-    } catch (e) {
-        const fallbacks = [['BTC', 77654, -0.24], ['ETH', 2313.66, -0.64], ['SOL', 85.11, -1.15], ['BNB', 625.98, -0.80], ['XRP', 1.41, -1.02]];
-        for (const [nombre, precio, cambio] of fallbacks) {
-            const signo = cambio >= 0 ? '🟢' : '🔴';
-            const precioStr = nombre === 'BTC' ? `$${precio.toLocaleString()}` : `$${precio}`;
-            resultados.push(`• ${nombre} ${precioStr} ${signo} ${cambio >= 0 ? '+' : ''}${cambio}%`);
-        }
+        guardarCarrito();
+        mostrarToast(`✅ ${producto.corto} agregado al carrito`);
+        actualizarUI();
     }
-    return resultados.join('\n');
-}
-
-async function getSP500Real() {
-    try {
-        const response = await axios.get('https://query1.finance.yahoo.com/v8/finance/chart/ES=F', { timeout: 8000 });
-        const result = response.data.chart.result[0];
-        const meta = result.meta;
-        const currentPrice = meta.regularMarketPrice;
-        const previousClose = meta.previousClose || currentPrice;
-        const change = currentPrice - previousClose;
-        const changePercent = (change / previousClose * 100).toFixed(2);
-        const high = meta.regularMarketDayHigh || currentPrice;
-        const low = meta.regularMarketDayLow || currentPrice;
-        const targetPrice = Math.round(currentPrice * 1.047);
-        const proyeccion = ((targetPrice - currentPrice) / currentPrice * 100).toFixed(1);
-        const soporte = Math.floor(currentPrice - 40);
-        const tendencia = change >= 0 ? 'Alcista (fuerte)' : 'Bajista (corrección)';
-        const macd = changePercent > 0.5 ? 'Oscilador positivo 📈' : changePercent < -0.5 ? 'Oscilador negativo 📉' : 'Oscilador neutral ➡️';
+    
+    function totalCarrito() {
+        return carrito.reduce((total, p) => total + (p.precio * p.cantidad), 0);
+    }
+    
+    function irAWhatsApp() {
+        if (carrito.length === 0) {
+            mostrarToast('🛒 Agrega productos al carrito primero');
+            return;
+        }
         
-        return `✅ *EVA v13.0 ACTIVA - JEFE MODE*
-━━━━━━━━━━━━━━━━━━━━
-
-📈 *S&P 500 - ANÁLISIS COMPLETO*
-━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🎯 *PRECIO ACTUAL*
-   • E-mini Futures: ${currentPrice.toFixed(2)} pts
-   • Cambio: ${change >= 0 ? '+' : ''}${change.toFixed(2)} pts (${changePercent}%)
-   • Máximo: ${high.toFixed(2)} | Mínimo: ${low.toFixed(2)}
-   • Proyección alcista: ${targetPrice} pts (+${proyeccion}%)
-
-📊 *ANÁLISIS TÉCNICO*
-   • Tendencia: Always In Long (${tendencia})
-   • Siguiente nivel: ruptura sobre ${Math.ceil(currentPrice)} extiende subida
-   • Soporte: ${soporte}-${soporte + 10}
-   • MACD: ${macd}
-
-💡 *ESTRATEGIA*
-   • Visión: ${change >= 0 ? 'alcista' : 'neutral/bajista'}, objetivo ${targetPrice}
-   • Posición: comprar en pullbacks (soporte ${soporte}-${soporte + 10})
-
-🕐 Actualizado: ${new Date().toLocaleString()}`;
-    } catch (error) {
-        return `✅ *EVA v13.0 ACTIVA - JEFE MODE*
-━━━━━━━━━━━━━━━━━━━━
-
-📈 *S&P 500 - ANÁLISIS COMPLETO*
-━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🎯 *PRECIO ACTUAL*
-   • E-mini Futures: 7208.5 pts
-   • Proyección alcista: 7550 pts (+4.7%)
-
-📊 *ANÁLISIS TÉCNICO*
-   • Tendencia: Always In Long (fuerte)
-   • Soporte: 7160-7170
-
-🕐 Actualizado: ${new Date().toLocaleString()}`;
-    }
-}
-
-async function getBuenosDiasReal() {
-    const clima = await getClimaReal();
-    const acciones = await getAccionesReales();
-    const futuros = await getFuturosReales();
-    const cripto = await getCriptoReales();
-    return `🌅 *BUENOS DÍAS, JEFE ${CONFIG.OWNER_NAME}*
-${clima}
-
-📈 *ACCIONES TECH*
-${acciones}
-
-📊 *FUTUROS*
-${futuros}
-
-🪙 *CRIPTOMONEDAS*
-${cripto}
-📋 No hay clientes hoy.`;
-}
-
-// ==============================================
-// 🧠 SISTEMA NLP
-// ==============================================
-class IntentionClassifier {
-    constructor() {
-        this.tokenizer = new natural.WordTokenizer();
-        this.classifier = new natural.BayesClassifier();
-        this.intenciones = {
-            DISENO: ['boceto', 'diseño', 'tatuaje', 'vector', 'realista', 'dibujo'],
-            MARKETING: ['marketing', 'promocion', 'viral', 'publicidad', 'campaña'],
-            LEGAL: ['legal', 'abogado', 'contrato', 'demanda', 'ley'],
-            MERCADOS: ['mercado', 'sp500', 'bolsa', 'cripto', 'bitcoin', 'acciones'],
-            TIENDITA: ['producto', 'comprar', 'precio', 'catalogo', 'pedido'],
-            CLIENTE: ['cita', 'agendar', 'reservar', 'disponible'],
-            MEMENTO: ['tarea', 'recordar', 'pendiente', 'recordatorio'],
-            REDES: ['facebook', 'instagram', 'tiktok', 'twitter', 'publicar'],
-            AYUDA: ['ayuda', 'comandos', 'que puedes hacer'],
-            ESTADO: ['estado', 'status', 'como vas', 'reporte']
-        };
-        this._entrenar();
-    }
-    _entrenar() {
-        Object.entries(this.intenciones).forEach(([intencion, ejemplos]) => {
-            ejemplos.forEach(ejemplo => this.classifier.addDocument(ejemplo, intencion));
+        let mensaje = '🍪 *PEDIDO La Tiendita* 🍪%0A%0A';
+        carrito.forEach(p => {
+            mensaje += `• ${p.cantidad}x ${p.nombre} - $${(p.precio * p.cantidad).toFixed(2)}%0A`;
         });
-        this.classifier.train();
+        mensaje += `%0A💰 *TOTAL: $${totalCarrito().toFixed(2)}*%0A%0A`;
+        mensaje += `📍 Envío a: %0A`;
+        mensaje += `💬 Gracias, abuelitos 🙏`;
+        
+        window.open(`https://wa.me/593986911774?text=${mensaje}`, '_blank');
     }
-    detectarIntencion(texto) {
-        const resultado = this.classifier.classify(texto.toLowerCase());
-        const probabilidades = this.classifier.getClassifications(texto.toLowerCase());
-        return { intencion: resultado, confianza: probabilidades.find(p => p.label === resultado)?.value || 0, todas: probabilidades };
+    
+    function irAWhatsAppDirecto() {
+        window.open(`https://wa.me/593986911774?text=Hola%20La%20Tiendita!%20Quiero%20hacer%20un%20pedido`, '_blank');
     }
-    detectarSentimiento(texto) {
-        const analyzer = new natural.SentimentAnalyzer('Spanish', natural.PorterStemmerEs, 'afinn');
-        const tokens = this.tokenizer.tokenize(texto.toLowerCase());
-        const sentimiento = analyzer.getSentiment(tokens);
-        return { score: sentimiento, emocion: sentimiento > 0.2 ? 'positivo' : sentimiento < -0.2 ? 'negativo' : 'neutral' };
+    
+    // ============================================
+    // CRUD PRODUCTOS (Admin)
+    // ============================================
+    
+    let editandoId = null;
+    
+    function showAddProductModal() {
+        editandoId = null;
+        document.getElementById('modalTitle').textContent = '➕ Agregar Producto';
+        document.getElementById('editProductId').value = '';
+        document.getElementById('editNombre').value = '';
+        document.getElementById('editCorto').value = '';
+        document.getElementById('editPresentacion').value = '';
+        document.getElementById('editPrecio').value = '';
+        document.getElementById('editStock').value = '';
+        document.getElementById('editCategoria').value = '';
+        document.getElementById('editEmoji').value = '🛒';
+        document.getElementById('productModal').classList.add('active');
     }
-}
-
-// ==============================================
-// 🎮 GAMIFICACIÓN
-// ==============================================
-class GamificationSystem {
-    constructor(db) {
-        this.db = db;
-        this.niveles = [{ nombre: 'Bronce', minimo: 0, descuento: 0 }, { nombre: 'Plata', minimo: 100, descuento: 5 }, { nombre: 'Oro', minimo: 500, descuento: 10 }, { nombre: 'Diamante', minimo: 1000, descuento: 20 }, { nombre: 'Leyenda', minimo: 5000, descuento: 30 }];
-        this._inicializarTabla();
+    
+    function editProduct(id) {
+        const p = productos.find(p => p.id === id);
+        if (!p) return;
+        editandoId = id;
+        document.getElementById('modalTitle').textContent = '✏️ Editar Producto';
+        document.getElementById('editProductId').value = p.id;
+        document.getElementById('editNombre').value = p.nombre;
+        document.getElementById('editCorto').value = p.corto;
+        document.getElementById('editPresentacion').value = p.presentacion;
+        document.getElementById('editPrecio').value = p.precio;
+        document.getElementById('editStock').value = p.stock;
+        document.getElementById('editCategoria').value = p.categoria;
+        document.getElementById('editEmoji').value = p.emoji;
+        document.getElementById('productModal').classList.add('active');
     }
-    _inicializarTabla() {
-        this.db.exec(`CREATE TABLE IF NOT EXISTS gamificacion (id INTEGER PRIMARY KEY AUTOINCREMENT, telefono TEXT UNIQUE, nombre TEXT, puntos INTEGER DEFAULT 0, nivel TEXT DEFAULT 'Bronce', referidos INTEGER DEFAULT 0, compras INTEGER DEFAULT 0, reseñas INTEGER DEFAULT 0, ultima_actividad DATETIME DEFAULT CURRENT_TIMESTAMP, creado DATETIME DEFAULT CURRENT_TIMESTAMP); CREATE TABLE IF NOT EXISTS recompensas (id INTEGER PRIMARY KEY AUTOINCREMENT, telefono TEXT, tipo TEXT, descripcion TEXT, puntos_usados INTEGER, canjeado INTEGER DEFAULT 0, creado DATETIME DEFAULT CURRENT_TIMESTAMP);`);
-    }
-    registrarCliente(telefono, nombre = '') {
-        const existe = this.db.prepare('SELECT id FROM gamificacion WHERE telefono = ?').get(telefono);
-        if (!existe) {
-            this.db.prepare('INSERT INTO gamificacion (telefono, nombre, puntos) VALUES (?, ?, 10)').run(telefono, nombre);
-            return { mensaje: '🎉 ¡Bienvenido! Ganaste 10 puntos de regalo', puntos: 10 };
+    
+    function guardarProducto() {
+        const id = document.getElementById('editProductId').value;
+        const producto = {
+            id: id ? parseInt(id) : Date.now(),
+            codigo: id ? productos.find(p => p.id === parseInt(id))?.codigo : `PROD-${Date.now()}`,
+            nombre: document.getElementById('editNombre').value,
+            corto: document.getElementById('editCorto').value,
+            presentacion: document.getElementById('editPresentacion').value,
+            precio: parseFloat(document.getElementById('editPrecio').value),
+            stock: parseInt(document.getElementById('editStock').value),
+            categoria: document.getElementById('editCategoria').value,
+            emoji: document.getElementById('editEmoji').value,
+            imagen: '',
+            vendidos: id ? productos.find(p => p.id === parseInt(id))?.vendidos || 0 : 0
+        };
+        
+        if (id) {
+            const index = productos.findIndex(p => p.id === parseInt(id));
+            if (index !== -1) productos[index] = producto;
+        } else {
+            productos.push(producto);
         }
-        return { mensaje: '👋 Ya estás registrado', puntos: this.obtenerPuntos(telefono) };
+        
+        guardarDatos();
+        closeModal();
+        actualizarUI();
+        mostrarToast('✅ Producto guardado');
     }
-    sumarPuntos(telefono, puntos, motivo) {
-        this.db.prepare('UPDATE gamificacion SET puntos = puntos + ?, ultima_actividad = CURRENT_TIMESTAMP WHERE telefono = ?').run(puntos, telefono);
-        const total = this.obtenerPuntos(telefono);
-        const nivel = this.calcularNivel(total);
-        this.db.prepare('UPDATE gamificacion SET nivel = ? WHERE telefono = ?').run(nivel, telefono);
-        return { puntos_sumados: puntos, total_puntos: total, nivel: nivel, motivo: motivo, progreso: this.obtenerProgresoNivel(telefono) };
+    
+    function deleteProduct(id) {
+        if (confirm('¿Eliminar este producto?')) {
+            productos = productos.filter(p => p.id !== id);
+            guardarDatos();
+            actualizarUI();
+            mostrarToast('🗑️ Producto eliminado');
+        }
     }
-    sumarReferido(telefono) { this.db.prepare('UPDATE gamificacion SET referidos = referidos + 1 WHERE telefono = ?').run(telefono); return this.sumarPuntos(telefono, 50, 'Referido exitoso'); }
-    sumarCompra(telefono, monto) { this.db.prepare('UPDATE gamificacion SET compras = compras + 1 WHERE telefono = ?').run(telefono); return this.sumarPuntos(telefono, Math.floor(monto * 0.1), `Compra de $${monto}`); }
-    sumarReseña(telefono) { this.db.prepare('UPDATE gamificacion SET reseñas = reseñas + 1 WHERE telefono = ?').run(telefono); return this.sumarPuntos(telefono, 25, 'Reseña publicada'); }
-    obtenerPuntos(telefono) { const row = this.db.prepare('SELECT puntos FROM gamificacion WHERE telefono = ?').get(telefono); return row ? row.puntos : 0; }
-    calcularNivel(puntos) { for (let i = this.niveles.length - 1; i >= 0; i--) { if (puntos >= this.niveles[i].minimo) return this.niveles[i].nombre; } return 'Bronce'; }
-    obtenerProgresoNivel(telefono) {
-        const puntos = this.obtenerPuntos(telefono);
-        const nivelActual = this.niveles.find(n => n.nombre === this.calcularNivel(puntos));
-        const siguienteNivel = this.niveles[this.niveles.indexOf(nivelActual) + 1];
-        if (!siguienteNivel) return { nivel: nivelActual.nombre, progreso: 100, mensaje: '¡Nivel máximo!' };
-        const progreso = ((puntos - nivelActual.minimo) / (siguienteNivel.minimo - nivelActual.minimo)) * 100;
-        return { nivel: nivelActual.nombre, siguiente: siguienteNivel.nombre, puntos_actuales: puntos, puntos_necesarios: siguienteNivel.minimo, progreso: Math.min(progreso, 100), descuento_actual: nivelActual.descuento };
+    
+    function closeModal() {
+        document.getElementById('productModal').classList.remove('active');
+        editandoId = null;
     }
-    obtenerLeaderboard(limite = 10) { return this.db.prepare('SELECT telefono, nombre, puntos, nivel, referidos, compras FROM gamificacion ORDER BY puntos DESC LIMIT ?').all(limite); }
-    canjearRecompensa(telefono, tipo, descripcion, puntos_necesarios) {
-        const puntos = this.obtenerPuntos(telefono);
-        if (puntos < puntos_necesarios) return { exito: false, mensaje: `Necesitas ${puntos_necesarios} puntos. Tienes ${puntos}` };
-        this.db.prepare('UPDATE gamificacion SET puntos = puntos - ? WHERE telefono = ?').run(puntos_necesarios, telefono);
-        this.db.prepare('INSERT INTO recompensas (telefono, tipo, descripcion, puntos_usados, canjeado) VALUES (?, ?, ?, ?, 0)').run(telefono, tipo, descripcion, puntos_necesarios);
-        return { exito: true, mensaje: `✅ Recompensa canjeada: ${descripcion}`, puntos_restantes: this.obtenerPuntos(telefono) };
+    
+    // ============================================
+    // SUBIR IMAGEN
+    // ============================================
+    
+    function uploadImage(productId) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const index = productos.findIndex(p => p.id === productId);
+                if (index !== -1) {
+                    productos[index].imagen = event.target.result;
+                    guardarDatos();
+                    actualizarUI();
+                    mostrarToast('🖼️ Imagen actualizada');
+                }
+            };
+            reader.readAsDataURL(file);
+        };
+        input.click();
     }
-}
-
-// ==============================================
-// 📣 MARKETING AUTOMATION
-// ==============================================
-class MarketingAutomation {
-    constructor(db, groqKeys) {
-        this.db = db;
-        this.groqKeys = groqKeys;
-        this.keyIndex = 0;
-        this._inicializarTabla();
+    
+    // ============================================
+    // RENDERIZADO
+    // ============================================
+    
+    function renderizarFiltros() {
+        const categorias = ['Todos', ...new Set(productos.map(p => p.categoria))];
+        const container = document.getElementById('filters');
+        container.innerHTML = categorias.map(cat => `
+            <button class="filter-btn ${filtroActual === cat ? 'active' : ''}" onclick="filtrarPorCategoria('${cat}')">
+                ${cat}
+            </button>
+        `).join('');
     }
-    _inicializarTabla() {
-        this.db.exec(`CREATE TABLE IF NOT EXISTS campanas_marketing (id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT, tipo TEXT, plataforma TEXT, contenido TEXT, imagen_url TEXT, hashtags TEXT, programado_para DATETIME, publicado INTEGER DEFAULT 0, metricas TEXT, creado DATETIME DEFAULT CURRENT_TIMESTAMP); CREATE TABLE IF NOT EXISTS contenido_viral (id INTEGER PRIMARY KEY AUTOINCREMENT, tipo TEXT, hook TEXT, guion TEXT, hashtags TEXT, musica_sugerida TEXT, duracion_estimada TEXT, usado INTEGER DEFAULT 0, creado DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+    
+    function filtrarPorCategoria(cat) {
+        filtroActual = cat;
+        renderizarFiltros();
+        renderizarProductos();
     }
-    getNextKey() { return this.groqKeys[this.keyIndex++ % this.groqKeys.length]; }
-    async generarHookViral(tema, plataforma = 'tiktok') {
-        const prompt = `Genera 3 hooks virales para ${plataforma} sobre: "${tema}". Formato: "1. [Hook] | 2. [Hook] | 3. [Hook]"`;
-        const apiKey = this.getNextKey();
-        const response = await this.llamarGroq(prompt, apiKey);
-        return response.split('|').map(h => h.trim());
+    
+    function buscarProductos() {
+        busquedaActual = document.getElementById('searchInput').value.toLowerCase();
+        renderizarProductos();
     }
-    async generarGuionCompleto(tema, hook, plataforma) {
-        const prompt = `C
+    
+    function filtrarProductos() {
+        let resultados = [...productos];
+        
+        if (filtroActual !== 'Todos') {
+            resultados = resultados.filter(p => p.categoria === filtroActual);
+        }
+        
+        if (busquedaActual) {
+            resultados = resultados.filter(p => 
+                p.nombre.toLowerCase().includes(busquedaActual) ||
+                p.corto.toLowerCase().includes(busquedaActual) ||
+                p.categoria.toLowerCase().includes(busquedaActual) ||
+                (p.codigo && p.codigo.toLowerCase().includes(busquedaActual))
+            );
+        }
+        
+        return resultados;
+    }
+    
+    function renderizarTarjeta(p, esPopular = false) {
+        const enCarrito = carrito.find(c => c.id === p.id);
+        const stockClass = p.stock <= 5 ? 'low' : '';
+        
+        return `
+            <div class="product-card" onclick="uploadImage(${p.id})">
+                ${esPopular ? '<div style="position:absolute;top:10px;left:10px;background:gold;color:black;padding:2px 8px;border-radius:20px;font-size:0.6rem;">⭐ POPULAR</div>' : ''}
+                <div class="product-image">
+                    ${p.imagen ? `<img src="${p.imagen}" alt="${p.nombre}">` : `<span style="font-size:4rem;">${p.emoji}</span>`}
+                    <div class="image-upload-hint">📷 Click para cambiar imagen</div>
+                </div>
+                <div class="stock-badge ${stockClass}">📦 ${p.stock}</div>
+                <div class="product-category">${p.categoria}</div>
+                <div class="product-name">${p.corto}</div>
+                <div class="product-price">$${p.precio.toFixed(2)}</div>
+                <div class="product-actions">
+                    <button class="btn-cart" onclick="event.stopPropagation(); agregarAlCarrito(${JSON.stringify(p).replace(/"/g, '&quot;')})">
+                        ${enCarrito ? `✅ ${enCarrito.cantidad}` : '🛒 Agregar'}
+                    </button>
+                    <a href="https://wa.me/593986911774?text=Quiero%20${encodeURIComponent(p.nombre)}%20-%20$${p.precio}" class="btn-whatsapp" target="_blank" onclick="event.stopPropagation()">💬</a>
+                </div>
+            </div>
+        `;
+    }
+    
+    function renderizarProductos() {
+        const filtrados = filtrarProductos();
+        const grid = document.getElementById('productsGrid');
+        
+        if (filtrados.length === 0) {
+            grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;">🔍 No se encontraron productos</div>';
+        } else {
+            grid.innerHTML = filtrados.map(p => renderizarTarjeta(p, false)).join('');
+        }
+    }
+    
+    function renderizarMasVendidos() {
+        const top = [...productos].sort((a, b) => (b.vendidos || 0) - (a.vendidos || 0)).slice(0, 6);
+        const grid = document.getElementById('bestSellersGrid');
+        grid.innerHTML = top.map(p => renderizarTarjeta(p, true)).join('');
+    }
+    
+    function renderizarAdmin() {
+        const stats = document.getElementById('adminStats');
+        stats.innerHTML = `
+            <div class="admin-stat"><div class="admin-stat-value">${productos.length}</div><div>Productos</div></div>
+            <div class="admin-stat"><div class="admin-stat-value">${productos.reduce((s, p) => s + p.stock, 0)}</div><div>Unidades en stock</div></div>
+            <div class="admin-stat"><div class="admin-stat-value">${carrito.length}</div><div>Carrito actual</div></div>
+        `;
+        
+        const grid = document.getElementById('adminProductsGrid');
+        grid.innerHTML = productos.map(p => `
+            <div class="admin-product-item">
+                <div class="admin-product-info">
+                    <div class="admin-product-name">${p.emoji} ${p.nombre}</div>
+                    <div class="admin-product-code">${p.codigo || 'sin código'} · Stock: ${p.stock} · $${p.precio}</div>
+                </div>
+                <div class="admin-product-actions">
+                    <button class="admin-edit" onclick="editProduct(${p.id})">✏️</button>
+                    <button class="admin-delete" onclick="deleteProduct(${p.id})">🗑️</button>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    // ============================================
+    // CARRUSEL
+    // ============================================
+    
+    const OFERTAS = [
+        { emoji: "🍪", nombre: "3 Wafers Mix", desc: "Elige 3 wafers (Pekes, Fresa, Choco o Vainilla)", precio: 1.00, ahorro: 0.35 },
+        { emoji: "🥤", nombre: "2 Cocas 500ml", desc: "Llévate 2 Coca-Colas de 500ml", precio: 2.00, ahorro: 0.20 },
+        { emoji: "🍫", nombre: "3 Croferos", desc: "Mezcla Choco, Coco y Fresa", precio: 0.65, ahorro: 0.10 },
+        { emoji: "🫒", nombre: "2 Palma Oro 350ml", desc: "Aceite Palma Oro", precio: 2.00, ahorro: 0.30 }
+    ];
+    
+    function renderizarCarrusel() {
+        const inner = document.getElementById('carouselInner');
+        inner.innerHTML = OFERTAS.map(o => `
+            <div class="carousel-slide">
+                <span class="emoji">${o.emoji}</span>
+                <h3>${o.nombre}</h3>
+                <p>${o.desc}</p>
+                <div class="price">$${o.precio.toFixed(2)}</div>
+                <div class="save">✨ Ahorras $${o.ahorro.toFixed(2)}</div>
+            </div>
+        `).join('');
+        
+        const dots = document.getElementById('carouselDots');
+        dots.innerHTML = OFERTAS.map((_, i) => `<div class="carousel-dot ${i === 0 ? 'active' : ''}" onclick="irASlide(${i})"></div>`).join('');
+        
+        if (autoCarouselInterval) clearInterval(autoCarouselInterval);
+        autoCarouselInterval = setInterval(() => {
+            carouselIndex = (carouselIndex + 1) % OFERTAS.length;
+            irASlide(carouselIndex);
+        }, 5000);
+    }
+    
+    function irASlide(index) {
+        carouselIndex = index;
+        const inner = document.getElementById('carouselInner');
+        inner.style.transform = `translateX(-${index * 100}%)`;
+        document.querySelectorAll('.carousel-dot').forEach((dot, i) => {
+            dot.classList.toggle('active', i === index);
+        });
+    }
+    
+    // ============================================
+    // ADMIN PANEL TOGGLE
+    // ============================================
+    
+    let adminActive = false;
+    let clicks = 0;
+    let clickTimeout;
+    
+    function toggleAdmin() {
+        adminActive = !adminActive;
+        const panel = document.getElementById('adminPanel');
+        panel.classList.toggle('active', adminActive);
+        if (adminActive) renderizarAdmin();
+    }
+    
+    // Modo administrador secreto (5 clics en el logo)
+    document.getElementById('logoClick').addEventListener('click', () => {
+        clicks++;
+        clearTimeout(clickTimeout);
+        clickTimeout = setTimeout(() => { clicks = 0; }, 1000);
+        if (clicks >= 5) {
+            toggleAdmin();
+            clicks = 0;
+            mostrarToast('🔓 Modo administrador activado');
+        }
+    });
+    
+    // ============================================
+    // TEMA OSCURO/CLARO
+    // ============================================
+    
+    function toggleTheme() {
+        const theme = document.documentElement.getAttribute('data-theme');
+        if (theme === 'light') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+            document.querySelector('.theme-toggle').innerHTML = '🌙';
+        } else {
+            document.documentElement.setAttribute('data-theme', 'light');
+            localStorage.setItem('theme', 'light');
+            document.querySelector('.theme-toggle').innerHTML = '☀️';
+        }
+    }
+    
+    // ============================================
+    // ACTUALIZAR TODO
+    // ============================================
+    
+    function actualizarUI() {
+        renderizarFiltros();
+        renderizarProductos();
+        renderizarMasVendidos();
+        actualizarContadorCarrito();
+        if (adminActive) renderizarAdmin();
+    }
+    
+    // ============================================
+    // INICIAR
+    // ============================================
+    
+    function iniciar() {
+        cargarDatos();
+        renderizarFiltros();
+        renderizarProductos();
+        renderizarMasVendidos();
+        renderizarCarrusel();
+        actualizarContadorCarrito();
+        
+        const temaGuardado = localStorage.getItem('theme');
+        if (temaGuardado === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+            document.querySelector('.theme-toggle').innerHTML = '☀️';
+        }
+        
+        setTimeout(() => {
+            document.getElementById('loader').classList.add('loader-wrapper-hidden');
+            document.getElementById('loader').style.display = 'none';
+        }, 800);
+    }
+    
+    iniciar();
+</script>
+</body>
+</html>
