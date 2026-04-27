@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Latiendita — Productos</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      background: #0a0c10;
+      color: #e8edf2;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 2px solid #2a2f3a;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      background: linear-gradient(135deg, #f5b042, #e08e2e);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+    }
+
+    .header p {
+      color: #8e9aaf;
+      margin-top: 0.5rem;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .stat-badge {
+      background: #1a1e26;
+      padding: 0.5rem 1rem;
+      border-radius: 40px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #f5b042;
+    }
+
+    /* Categorías */
+    .category {
+      margin-bottom: 3rem;
+    }
+
+    .category-title {
+      font-size: 1.8rem;
+      font-weight: 600;
+      padding-bottom: 0.5rem;
+      border-bottom: 3px solid #f5b042;
+      display: inline-block;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Grid de productos */
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.2rem;
+    }
+
+    /* Tarjeta de producto */
+    .product-card {
+      background: #11151c;
+      border: 1px solid #252b36;
+      border-radius: 16px;
+      overflow: hidden;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .product-card:hover {
+      transform: translateY(-3px);
+      border-color: #f5b042;
+    }
+
+    /* Área para imagen */
+    .product-image {
+      width: 100%;
+      height: 180px;
+      background: #0d1117;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-bottom: 1px solid #252b36;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .product-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .image-placeholder {
+      text-align: center;
+      color: #5a6577;
+      font-size: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .image-placeholder span:first-child {
+      font-size: 2.5rem;
+      opacity: 0.6;
+    }
+
+    /* Instrucción para imagen */
+    .image-instruction {
+      position: absolute;
+      bottom: 8px;
+      right: 10px;
+      background: rgba(0,0,0,0.7);
+      font-size: 0.6rem;
+      padding: 2px 8px;
+      border-radius: 20px;
+      color: #f5b042;
+      font-family: monospace;
+      pointer-events: none;
+    }
+
+    /* Contenido */
+    .product-info {
+      padding: 1rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .product-name {
+      font-size: 1.1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+
+    .product-code {
+      font-size: 0.6rem;
+      font-family: monospace;
+      color: #8e9aaf;
+      background: #1e2530;
+      padding: 0.2rem 0.5rem;
+      border-radius: 20px;
+    }
+
+    .product-presentation {
+      font-size: 0.75rem;
+      color: #8e9aaf;
+    }
+
+    .product-price {
+      display: flex;
+      align-items: baseline;
+      gap: 0.75rem;
+      margin: 0.3rem 0;
+    }
+
+    .price-sale {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #f5b042;
+    }
+
+    .price-cost {
+      font-size: 0.75rem;
+      color: #5a6577;
+      text-decoration: line-through;
+    }
+
+    .stock-badge {
+      font-size: 0.7rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      display: inline-block;
+      width: fit-content;
+    }
+
+    .stock-normal {
+      background: #1e3a2f;
+      color: #4ade80;
+    }
+
+    .stock-low {
+      background: #3a2a1e;
+      color: #fbbf24;
+    }
+
+    .stock-out {
+      background: #3a1e1e;
+      color: #f87171;
+    }
+
+    /* Enlace de búsqueda */
+    .search-link {
+      margin-top: 0.6rem;
+      padding-top: 0.6rem;
+      border-top: 1px solid #252b36;
+    }
+
+    .search-link a {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.7rem;
+      color: #8e9aaf;
+      text-decoration: none;
+      transition: color 0.2s;
+      font-family: monospace;
+    }
+
+    .search-link a:hover {
+      color: #f5b042;
+    }
+
+    /* Pie */
+    .footer-note {
+      margin-top: 3rem;
+      text-align: center;
+      padding: 2rem;
+      background: #11151c;
+      border-radius: 16px;
+      border: 1px solid #252b36;
+    }
+
+    .footer-note h3 {
+      color: #f5b042;
+      margin-bottom: 0.8rem;
+    }
+
+    .footer-note p {
+      color: #8e9aaf;
+      font-size: 0.85rem;
+    }
+
+    code {
+      background: #1e2530;
+      padding: 0.2rem 0.4rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🛒 Latiendita</h1>
+    <p>Tu tienda de barrio, precios justos — Eloy Alfaro y 7 de Noviembre, Paján</p>
+    <div class="stats">
+      <span class="stat-badge">📦 129 productos</span>
+      <span class="stat-badge">🟢 116 con precio</span>
+      <span class="stat-badge">⏳ 13 pendientes</span>
+    </div>
+  </div>
+
+  <div id="app"></div>
+
+  <div class="footer-note">
+    <h3>📸 ¿Cómo poner imágenes?</h3>
+    <p>1. Guarda la foto del producto con el nombre EXACTO: <code>codigo.jpg</code> (ej: <code>AMOR-PEK.jpg</code>)</p>
+    <p>2. Coloca todas las imágenes en la misma carpeta que este archivo HTML</p>
+    <p>3. Recarga la página y las imágenes aparecerán automáticamente</p>
+    <p>💡 Debajo de cada producto hay un enlace <strong>"🔍 Buscar imagen en Google"</strong> para que encuentres la foto de referencia fácilmente.</p>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // DATOS COMPLETOS DE PRODUCTOS (desde el archivo JS)
+  // ============================================================
+  const PRODUCTOS = [
+    // ========== DULCES Y GALLETAS ==========
+    { id: 1, codigo: "AMOR-PEK", nombre: "Amor Wafers Pekes", corto: "Wafer Pekes", presentacion: "76x75g", costo: 0.35, venta: 0.65, stock: 30, categoria: "Dulces", emoji: "🍪" },
+    { id: 2, codigo: "AMOR-FRE", nombre: "Amor Wafer Fresa", corto: "Wafer Fresa", presentacion: "76x75g", costo: 0.35, venta: 0.65, stock: 25, categoria: "Dulces", emoji: "🍓" },
+    { id: 3, codigo: "AMOR-CHO", nombre: "Amor Wafer Chocolate", corto: "Wafer Choco", presentacion: "120x50g", costo: 0.35, venta: 0.65, stock: 20, categoria: "Dulces", emoji: "🍫" },
+    { id: 4, codigo: "AMOR-VAI", nombre: "Amor Wafer Vainilla", corto: "Wafer Vainilla", presentacion: "120x50g", costo: 0.35, venta: 0.65, stock: 20, categoria: "Dulces", emoji: "🍦" },
+    { id: 5, codigo: "NES-COC", nombre: "Nestlé Galleta Coco", corto: "Galleta Coco", presentacion: "18x540g", costo: 3.95, venta: 4.25, stock: 10, categoria: "Dulces", emoji: "🥥" },
+    { id: 6, codigo: "NES-MIN", nombre: "Nest María Galleta Mini", corto: "María Mini", presentacion: "40x92g", costo: 0.37, venta: 0.67, stock: 15, categoria: "Dulces", emoji: "🍘" },
+    { id: 7, codigo: "CRO-CHO", nombre: "Croferos Chocolate", corto: "Croferos Choco", presentacion: "25G 180U", costo: 0.14, venta: 0.45, stock: 24, categoria: "Dulces", emoji: "🍫" },
+    { id: 8, codigo: "CRO-COC", nombre: "Croferos Coco", corto: "Croferos Coco", presentacion: "25G 180U", costo: 0.14, venta: 0.45, stock: 18, categoria: "Dulces", emoji: "🥥" },
+    { id: 9, codigo: "CRO-FRE", nombre: "Croferos Fresa", corto: "Croferos Fresa", presentacion: "25G 180U", costo: 0.14, venta: 0.45, stock: 20, categoria: "Dulces", emoji: "🍓" },
+    { id: 10, codigo: "PRO-CHO", nombre: "Profers Chomax Avellana", corto: "Profers Avellana", presentacion: "6X25G160", costo: 1.55, venta: 1.85, stock: 6, categoria: "Dulces", emoji: "🌰" },
+    { id: 11, codigo: "MIN-MAN", nombre: "Miniplop Mango con Sal", corto: "Miniplop Mango", presentacion: "48x20 RV", costo: 2.06, venta: 2.36, stock: 8, categoria: "Dulces", emoji: "🥭" },
+    // BEBIDAS
+    { id: 12, codigo: "COC-30", nombre: "Coca-Cola 30ml", corto: "Coca 30ml", presentacion: "RCB (24)", costo: 0.80, venta: 1.10, stock: 50, categoria: "Bebidas", emoji: "🥤" },
+    { id: 13, codigo: "COC-500", nombre: "Coca-Cola 500ml", corto: "Coca 500ml", presentacion: "RCB (24)", costo: 1.00, venta: 1.30, stock: 40, categoria: "Bebidas", emoji: "🥤" },
+    { id: 14, codigo: "COC-1000", nombre: "Coca-Cola 1000ml", corto: "Coca 1L", presentacion: "RCB (24)", costo: 1.50, venta: 1.80, stock: 30, categoria: "Bebidas", emoji: "🥤" },
+    { id: 57, codigo: "COC-1250", nombre: "Coca-Cola 1250ml", corto: "Coca 1.25L", presentacion: "1250ml", costo: 1.05, venta: 1.25, stock: 25, categoria: "Bebidas", emoji: "🥤" },
+    { id: 58, codigo: "COC-300", nombre: "Coca-Cola 300ml", corto: "Coca 300ml", presentacion: "300ml", costo: 0.40, venta: 0.50, stock: 35, categoria: "Bebidas", emoji: "🥤" },
+    { id: 59, codigo: "COC-250", nombre: "Coca-Cola 250ml", corto: "Coca 250ml", presentacion: "250ml", costo: 0.25, venta: 0.30, stock: 40, categoria: "Bebidas", emoji: "🥤" },
+    { id: 60, codigo: "FAN-12", nombre: "Fanta 12oz", corto: "Fanta 12", presentacion: "12oz", costo: 0.65, venta: 0.75, stock: 20, categoria: "Bebidas", emoji: "🍊" },
+    { id: 61, codigo: "SPR-22", nombre: "Sprite 22oz", corto: "Sprite 22", presentacion: "22oz", costo: 0.65, venta: 0.75, stock: 20, categoria: "Bebidas", emoji: "🥤" },
+    { id: 62, codigo: "FLO-12", nombre: "Flo 12oz", corto: "Flo 12", presentacion: "12oz", costo: 0.65, venta: 0.75, stock: 15, categoria: "Bebidas", emoji: "🥤" },
+    { id: 63, codigo: "COC-SOL-22", nombre: "Coca Sol 22oz", corto: "Coca Sol 22", presentacion: "22oz", costo: 2.10, venta: 2.50, stock: 10, categoria: "Bebidas", emoji: "🥤" },
+    { id: 64, codigo: "COC-SOL-32", nombre: "Coca Sol 32oz", corto: "Coca Sol 32", presentacion: "32oz", costo: 2.90, venta: 3.50, stock: 8, categoria: "Bebidas", emoji: "🥤" },
+    // CAFÉS
+    { id: 65, codigo: "CAF-15G", nombre: "Café 15g", corto: "Café 15g", presentacion: "15g", costo: 0.85, venta: 1.00, stock: 30, categoria: "Alimentos", emoji: "☕" },
+    { id: 25, codigo: "NES-CAF", nombre: "Nescafé Gold", corto: "Nescafé Gold", presentacion: "Doypack", costo: 0.85, venta: 1.00, stock: 25, categoria: "Alimentos", emoji: "☕" },
+    { id: 66, codigo: "NES-TRA-20G", nombre: "Nescafé Tradición 20g", corto: "Nescafé Tradición", presentacion: "20g", costo: 0.85, venta: 1.00, stock: 20, categoria: "Alimentos", emoji: "☕" },
+    { id: 67, codigo: "NES-GOLD-6G", nombre: "Nescafé Gold 6g", corto: "Nescafé Gold 6g", presentacion: "6g", costo: 0.28, venta: 0.35, stock: 35, categoria: "Alimentos", emoji: "☕" },
+    { id: 68, codigo: "NES-TRA-10G", nombre: "Nescafé Tradición 10g", corto: "Nescafé Tradición 10g", presentacion: "10g", costo: 0.28, venta: 0.33, stock: 30, categoria: "Alimentos", emoji: "☕" },
+    { id: 69, codigo: "CAF-DGUS", nombre: "Café D'gusto", corto: "D'gusto", presentacion: "6.9g", costo: 5.80, venta: 6.90, stock: 10, categoria: "Alimentos", emoji: "☕" },
+    // ACEITES
+    { id: 15, codigo: "PAL-ACH", nombre: "Palma Oro Achiote 200ml", corto: "Achiote 200ml", presentacion: "CART C6", costo: 0.95, venta: 1.15, stock: 15, categoria: "Aceites", emoji: "🫒" },
+    { id: 16, codigo: "PAL-350", nombre: "Palma Oro 350ml", corto: "Palma Oro 350ml", presentacion: "GOB CART C6", costo: 0.90, venta: 1.00, stock: 12, categoria: "Aceites", emoji: "🫒" },
+    { id: 17, codigo: "PAL-FDA", nombre: "Palma Oro FDA GOB", corto: "Palma FDA", presentacion: "S1 C 15U", costo: 1.00, venta: 1.20, stock: 30, categoria: "Aceites", emoji: "🫒" },
+    { id: 18, codigo: "TRI-ACE", nombre: "Triferin Aceite 900ml", corto: "Triferin 900ml", presentacion: "C 12U", costo: 2.00, venta: 2.45, stock: 8, categoria: "Aceites", emoji: "🧴" },
+    { id: 19, codigo: "COC-ACH", nombre: "Cocinero Achiote 200ml", corto: "Cocinero Achiote", presentacion: "30U", costo: 0.95, venta: 1.15, stock: 22, categoria: "Aceites", emoji: "🧑‍🍳" },
+    { id: 20, codigo: "VIV-CAN", nombre: "Vivi Canola 700ml", corto: "Vivi Canola", presentacion: "15U", costo: 1.80, venta: 2.30, stock: 10, categoria: "Aceites", emoji: "🌿" },
+    { id: 70, codigo: "ACE-PAL-390", nombre: "Aceite Palmo 390ml", corto: "Palmo 390ml", presentacion: "390ml", costo: 0.85, venta: 1.00, stock: 15, categoria: "Aceites", emoji: "🫒" },
+    { id: 71, codigo: "ACE-CAM-390", nombre: "Aceite El Cámara 390ml", corto: "El Cámara 390ml", presentacion: "390ml", costo: 0.85, venta: 1.00, stock: 15, categoria: "Aceites", emoji: "🫒" },
+    { id: 72, codigo: "ACE-5G-410", nombre: "Aceite 5° Guisado 410ml", corto: "5° Guisado", presentacion: "410ml", costo: 0.85, venta: 1.00, stock: 12, categoria: "Aceites", emoji: "🫒" },
+    { id: 73, codigo: "ACE-CAM-740", nombre: "Aceite El Cámara 740ml", corto: "El Cámara 740ml", presentacion: "740ml", costo: 1.70, venta: 2.00, stock: 10, categoria: "Aceites", emoji: "🫒" },
+    // FIDEOS
+    { id: 26, codigo: "FID-AMA-SPA", nombre: "Fideos Amanda Spaghetti", corto: "Spaghetti", presentacion: "200g", costo: 0.55, venta: 0.65, stock: 20, categoria: "Fideos", emoji: "🍝" },
+    { id: 27, codigo: "FID-AMA-MAC", nombre: "Fideos Amanda Macarrón", corto: "Macarrón", presentacion: "200g", costo: 0.55, venta: 0.65, stock: 20, categoria: "Fideos", emoji: "🍝" },
+    { id: 28, codigo: "FID-AMA-TAL", nombre: "Fideos Amanda Tallarín", corto: "Tallarín", presentacion: "100g", costo: 0.30, venta: 0.35, stock: 20, categoria: "Fideos", emoji: "🍜" },
+    { id: 29, codigo: "FID-SHA", nombre: "Fideos Shaina", corto: "Shaina", presentacion: "180g", costo: 0.85, venta: 1.00, stock: 15, categoria: "Fideos", emoji: "🍝" },
+    // DETERGENTE
+    { id: 30, codigo: "DET-DEN-150", nombre: "Denso Detergente", corto: "Denso", presentacion: "150g", costo: 0.40, venta: 0.50, stock: 25, categoria: "Limpieza", emoji: "🧼" },
+    { id: 31, codigo: "DET-SUR-225", nombre: "Surf Detergente", corto: "Surf 225g", presentacion: "225g", costo: 0.40, venta: 0.50, stock: 30, categoria: "Limpieza", emoji: "🧼" },
+    { id: 32, codigo: "DET-SUR-500", nombre: "Surf Detergente", corto: "Surf 500g", presentacion: "500g", costo: 0.85, venta: 1.00, stock: 20, categoria: "Limpieza", emoji: "🧼" },
+    { id: 33, codigo: "DET-SUR-840", nombre: "Surf Detergente", corto: "Surf 840g", presentacion: "840g", costo: 1.70, venta: 2.00, stock: 15, categoria: "Limpieza", emoji: "🧼" },
+    { id: 34, codigo: "DET-OYO-370", nombre: "Oyo Detergente", corto: "Oyo 370g", presentacion: "370g", costo: 0.85, venta: 1.00, stock: 18, categoria: "Limpieza", emoji: "🧼" },
+    { id: 35, codigo: "DET-CEN-350", nombre: "Cena Detergente", corto: "Cena", presentacion: "350g", costo: 0.85, venta: 1.00, stock: 12, categoria: "Limpieza", emoji: "🧼" },
+    // SUAVIZANTES
+    { id: 36, codigo: "SUA-ARO-LAV", nombre: "Aromatel Lavanda y Vainilla", corto: "Aromatel Lavanda", presentacion: "340ml", costo: 0.85, venta: 1.00, stock: 15, categoria: "Limpieza", emoji: "🌸" },
+    { id: 37, codigo: "SUA-ARO-FRU", nombre: "Aromatel Frutos Rojos", corto: "Aromatel Frutos", presentacion: "340ml", costo: 0.85, venta: 1.00, stock: 15, categoria: "Limpieza", emoji: "🍓" },
+    { id: 38, codigo: "SUA-ARO-FLO", nombre: "Aromatel Floral", corto: "Aromatel Floral", presentacion: "340ml", costo: 0.85, venta: 1.00, stock: 15, categoria: "Limpieza", emoji: "🌺" },
+    { id: 39, codigo: "SUA-OYO-BAL", nombre: "Oyo Balsy", corto: "Oyo Balsy", presentacion: "300ml", costo: 0.85, venta: 1.00, stock: 12, categoria: "Limpieza", emoji: "🧴" },
+    // DESINFECTANTES
+    { id: 21, codigo: "SAN-LAV", nombre: "Sanson Desinfectante Lavanda", corto: "Sanson Lavanda", presentacion: "250ml", costo: 0.40, venta: 0.50, stock: 16, categoria: "Limpieza", emoji: "🧹" },
+    { id: 22, codigo: "SAN-FLO", nombre: "Sanson Desinfectante Floral", corto: "Sanson Floral", presentacion: "250ml", costo: 0.40, venta: 0.50, stock: 14, categoria: "Limpieza", emoji: "🌸" },
+    { id: 40, codigo: "DES-SIM-LAV", nombre: "Simple Desinfectante Lavanda", corto: "Simple Lavanda", presentacion: "240ml", costo: 0.40, venta: 0.50, stock: 15, categoria: "Limpieza", emoji: "🧹" },
+    { id: 41, codigo: "DES-SIM-MAN", nombre: "Simple Desinfectante Manzana", corto: "Simple Manzana", presentacion: "240ml", costo: 0.40, venta: 0.50, stock: 15, categoria: "Limpieza", emoji: "🍎" },
+    { id: 42, codigo: "DES-SAM-EUC", nombre: "Samson Eucalipto", corto: "Samson Eucalipto", presentacion: "250ml", costo: 0.40, venta: 0.50, stock: 12, categoria: "Limpieza", emoji: "🌿" },
+    { id: 43, codigo: "DES-SAM-MAN", nombre: "Samson Manzana y Canela", corto: "Samson Manzana", presentacion: "250ml", costo: 0.40, venta: 0.50, stock: 12, categoria: "Limpieza", emoji: "🍎" },
+    { id: 44, codigo: "DES-FAL", nombre: "Falafelzo", corto: "Falafelzo", presentacion: "240ml", costo: 0.40, venta: 0.50, stock: 10, categoria: "Limpieza", emoji: "🧽" },
+    // ATÚN Y SARDINAS
+    { id: 45, codigo: "ATU-REAL", nombre: "Atún Real", corto: "Atún Real", presentacion: "160g", costo: 1.30, venta: 1.50, stock: 20, categoria: "Alimentos", emoji: "🐟" },
+    { id: 46, codigo: "ATU-MAR", nombre: "Atún Mar Brava", corto: "Atún Mar Brava", presentacion: "140g", costo: 0.85, venta: 1.00, stock: 18, categoria: "Alimentos", emoji: "🐟" },
+    { id: 47, codigo: "SAR-REAL", nombre: "Sardinero Real", corto: "Sardina Real", presentacion: "156g", costo: 0.85, venta: 1.00, stock: 20, categoria: "Alimentos", emoji: "🥫" },
+    { id: 48, codigo: "SAR-CAN", nombre: "Sardinero Canario", corto: "Sardina Canario", presentacion: "140g", costo: 1.30, venta: 1.50, stock: 15, categoria: "Alimentos", emoji: "🥫" },
+    // ADEREZOS
+    { id: 24, codigo: "MAG-SAL", nombre: "Maggi Salsa de Tomate", corto: "Salsa Tomate", presentacion: "170g", costo: 0.85, venta: 1.00, stock: 12, categoria: "Alimentos", emoji: "🍅" },
+    { id: 74, codigo: "MAG-SAL-30", nombre: "Maggi Salsa 30g", corto: "Salsa 30g", presentacion: "30g", costo: 0.28, venta: 0.35, stock: 25, categoria: "Alimentos", emoji: "🍅" },
+    { id: 75, codigo: "MAY-MAG-140", nombre: "Mayonesa Maggi", corto: "Mayonesa", presentacion: "140g", costo: 1.25, venta: 1.50, stock: 15, categoria: "Alimentos", emoji: "🥄" },
+    { id: 53, codigo: "MAY-MAG-30", nombre: "Mayonesa Maggi 30g", corto: "Mayonesa 30g", presentacion: "30g", costo: 0.28, venta: 0.35, stock: 25, categoria: "Alimentos", emoji: "🥄" },
+    { id: 54, codigo: "NEC-MAG-200", nombre: "Néctar Maggi", corto: "Néctar", presentacion: "200g", costo: 1.05, venta: 1.25, stock: 12, categoria: "Alimentos", emoji: "🧴" },
+    { id: 76, codigo: "NEC-MAG-90", nombre: "Néctar Maggi 90g", corto: "Néctar 90g", presentacion: "90g", costo: 0.80, venta: 1.05, stock: 15, categoria: "Alimentos", emoji: "🧴" },
+    { id: 77, codigo: "SAZ-MAG", nombre: "Sazón Maggi", corto: "Sazón", presentacion: "430g", costo: 1.30, venta: 1.50, stock: 10, categoria: "Alimentos", emoji: "🧂" },
+    { id: 78, codigo: "SAZ-MAG-30", nombre: "Sazón Maggi 30g", corto: "Sazón 30g", presentacion: "30g", costo: 0.28, venta: 0.35, stock: 20, categoria: "Alimentos", emoji: "🧂" },
+    // ALIMENTOS VARIOS
+    { id: 23, codigo: "REG-MAR", nombre: "Regla Margarina", corto: "Margarina", presentacion: "50g", costo: 2.00, venta: 2.55, stock: 5, categoria: "Alimentos", emoji: "🧈" },
+    { id: 79, codigo: "MAR-LOS3", nombre: "Manteca Los 3 Chandillos", corto: "Manteca", presentacion: "420g", costo: 0.85, venta: 1.00, stock: 12, categoria: "Alimentos", emoji: "🧈" },
+    { id: 80, codigo: "POW-AID", nombre: "Power Ade", corto: "Power Ade", presentacion: "6350ml", costo: 0.40, venta: 0.50, stock: 20, categoria: "Bebidas", emoji: "🥤"},
+    // SHAMPOO
+    { id: 81, codigo: "SHA-SED-ANT", nombre: "Seda Anticaspas", corto: "Seda Anticaspas", presentacion: "Unidad", costo: 0.25, venta: 0.30, stock: 20, categoria: "Limpieza", emoji: "🧴" },
+    { id: 82, codigo: "SHA-SED-ANA", nombre: "Seda Anamidas", corto: "Seda Anamidas", presentacion: "Unidad", costo: 0.25, venta: 0.30, stock: 20, categoria: "Limpieza", emoji: "🧴" },
+    { id: 83, codigo: "SHA-SED-AIR", nombre: "Seda Aires", corto: "Seda Aires", presentacion: "Unidad", costo: 0.25, venta: 0.30, stock: 20, categoria: "Limpieza", emoji: "🧴" },
+    { id: 84, codigo: "SERTRAL", nombre: "Sertral", corto: "Sertral", presentacion: "Unidad", costo: 0.25, venta: 0.30, stock: 25, categoria: "Limpieza", emoji: "💊" },
+    { id: 85, codigo: "DEX", nombre: "Dex", corto: "Dex", presentacion: "Unidad", costo: 0.40, venta: 0.50, stock: 15, categoria: "Limpieza", emoji: "🧴" },
+    { id: 86, codigo: "NEUTRALIO", nombre: "Neutralio", corto: "Neutralio", presentacion: "Unidad", costo: 0.25, venta: 0.50, stock: 20, categoria: "Limpieza", emoji: "🧴" },
+    { id: 87, codigo: "LEG", nombre: "Leg", corto: "Leg", presentacion: "Unidad", costo: 0.25, venta: 0.30, stock: 15, categoria: "Limpieza", emoji: "🧴" },
+    { id: 88, codigo: "JAB-PRETIX", nombre: "Jabón Pretix", corto: "Pretix", presentacion: "Unidad", costo: 0.85, venta: 1.00, stock: 20, categoria: "Limpieza", emoji: "🧼" },
+    { id: 89, codigo: "JAB-VEST", nombre: "Jabón Vest", corto: "Vest", presentacion: "Unidad", costo: 0.40, venta: 0.50, stock: 20, categoria: "Limpieza", emoji: "🧼" },
+    { id: 90, codigo: "JAB-PREZNO", nombre: "Jabón Prezno", corto: "Prezno", presentacion: "Unidad", costo: 0.85, venta: 1.00, stock: 15, categoria: "Limpieza", emoji: "🧼" },
+    // DESODORANTE
+    { id: 91, codigo: "DES-NANO", nombre: "Nano Rayen", corto: "Nano Rayen", presentacion: "Unidad", costo: 0.25, venta: 0.30, stock: 20, categoria: "Limpieza", emoji: "🧴" },
+    { id: 92, codigo: "DES-REINA", nombre: "Reina Heme", corto: "Reina Heme", presentacion: "Unidad", costo: 0.25, venta: 0.30, stock: 20, categoria: "Limpieza", emoji: "🧴" },
+    // PASTA DENTAL
+    { id: 93, codigo: "PAS-DEN", nombre: "Pasta Dental", corto: "Pasta Dental", presentacion: "Unidad", costo: 1.05, venta: 1.25, stock: 15, categoria: "Limpieza", emoji: "🪥" },
+    // BOTANAS / SNACKS
+    { id: 94, codigo: "AMARO", nombre: "Amaro", corto: "Amaro", presentacion: "Unidad", costo: 0.20, venta: 0.25, stock: 30, categoria: "Snacks", emoji: "🍬" },
+    { id: 95, codigo: "BOL-0.25", nombre: "Bolletines", corto: "Bolletines", presentacion: "Unidad", costo: 0.20, venta: 0.25, stock: 30, categoria: "Snacks", emoji: "🍪" },
+    { id: 96, codigo: "BOL-0.50", nombre: "Bolletes Natural", corto: "Bolletes Natural", presentacion: "Unidad", costo: 0.40, venta: 0.50, stock: 25, categoria: "Snacks", emoji: "🍪" },
+    { id: 97, codigo: "BOL-1.00", nombre: "Bolletes", corto: "Bolletes", presentacion: "Unidad", costo: 0.85, venta: 1.00, stock: 20, categoria: "Snacks", emoji: "🍪" },
+    { id: 98, codigo: "COCO", nombre: "Coco", corto: "Coco", presentacion: "Unidad", costo: 0.20, venta: 0.25, stock: 25, categoria: "Snacks", emoji: "🥥" },
+    { id: 99, codigo: "NARCO", nombre: "Narco", corto: "Narco", presentacion: "Unidad", costo: 0.20, venta: 0.25, stock: 25, categoria: "Snacks", emoji: "🍬" },
+    { id: 100, codigo: "NEST-075", nombre: "Nestlé", corto: "Nestlé", presentacion: "Unidad", costo: 0.65, venta: 0.75, stock: 20, categoria: "Snacks", emoji: "🍫" },
+    { id: 101, codigo: "NEST-095", nombre: "Nestlé", corto: "Nestlé", presentacion: "Unidad", costo: 0.80, venta: 0.95, stock: 20, categoria: "Snacks", emoji: "🍫" },
+    { id: 102, codigo: "SOL-040", nombre: "Solticas", corto: "Solticas", presentacion: "Unidad", costo: 0.35, venta: 0.40, stock: 25, categoria: "Snacks", emoji: "🍪" },
+    { id: 103, codigo: "AREAS", nombre: "Areas", corto: "Areas", presentacion: "Unidad", costo: 0.40, venta: 0.50, stock: 20, categoria: "Snacks", emoji: "🍪" },
+    { id: 104, codigo: "SNARTES", nombre: "Snartes", corto: "Snartes", presentacion: "Unidad", costo: 0.20, venta: 0.25, stock: 25, categoria: "Snacks", emoji: "🍟" },
+    { id: 105, codigo: "PUNCHOS", nombre: "Punchos", corto: "Punchos", presentacion: "Unidad", costo: 0.20, venta: 0.25, stock: 25, categoria: "Snacks", emoji: "🍟" },
+    { id: 106, codigo: "TOM-025", nombre: "Tomatillos", corto: "Tomatillos", presentacion: "Unidad", costo: 0.20, venta: 0.25, stock: 25, categoria: "Snacks", emoji: "🍅" },
+    { id: 107, codigo: "LOC-QUESO", nombre: "Locados Queso", corto: "Locados Queso", presentacion: "Unidad", costo: 0.25, venta: 0.30, stock: 20, categoria: "Snacks", emoji: "🧀" },
+    { id: 108, codigo: "TOS-LIM", nombre: "Tostitos Limón", corto: "Tostitos Limón", presentacion: "Unidad", costo: 0.20, venta: 0.25, stock: 20, categoria: "Snacks", emoji: "🍋" },
+    // MEDICINAS / OTROS
+    { id: 109, codigo: "SERTRAL-200", nombre: "Sertral 2.00", corto: "Sertral", presentacion: "Unidad", costo: 1.70, venta: 2.00, stock: 10, categoria: "Medicinas", emoji: "💊" },
+    { id: 110, codigo: "INGRES", nombre: "Ingres", corto: "Ingres", presentacion: "Unidad", costo: 0.50, venta: 0.60, stock: 15, categoria: "Medicinas", emoji: "💊" },
+    { id: 111, codigo: "GASTRADO", nombre: "Gastrado", corto: "Gastrado", presentacion: "Unidad", costo: 0.40, venta: 0.50, stock: 15, categoria: "Medicinas", emoji: "💊" },
+    { id: 112, codigo: "VIVE-100", nombre: "Vive 100", corto: "Vive 100", presentacion: "Unidad", costo: 0.40, venta: 0.50, stock: 15, categoria: "Medicinas", emoji: "⚡" },
+    { id: 113, codigo: "VIF", nombre: "Vif", corto: "Vif", presentacion: "Unidad", costo: 0.40, venta: 0.50, stock: 15, categoria: "Medicinas", emoji: "💊" },
+    { id: 114, codigo: "220V", nombre: "220V", corto: "220V", presentacion: "Unidad", costo: 0.40, venta: 0.50, stock: 15, categoria: "Medicinas", emoji: "⚡" },
+    // ARTÍCULOS DE LIMPIEZA PESADOS
+    { id: 115, codigo: "SAN-500G", nombre: "Sanitario 500g", corto: "Sanitario 500g", presentacion: "500g", costo: 0.65, venta: 0.75, stock: 15, categoria: "Limpieza", emoji: "🚽" },
+    { id: 116, codigo: "SAN-1KG", nombre: "Sanitario 1kg", corto: "Sanitario 1kg", presentacion: "1kg", costo: 1.70, venta: 2.00, stock: 10, categoria: "Limpieza", emoji: "🚽" },
+    // PENDIENTES (sin precio)
+    { id: 999, codigo: "PEND-001", nombre: "Balanza de Agua", corto: "Balanza Agua", presentacion: "Unidad", costo: 0, venta: 0, stock: 0, categoria: "Pendiente", emoji: "⏳" },
+    { id: 998, codigo: "PEND-002", nombre: "Mineral", corto: "Mineral", presentacion: "Unidad", costo: 0, venta: 0, stock: 0, categoria: "Pendiente", emoji: "⏳" },
+    { id: 997, codigo: "PEND-003", nombre: "Galones", corto: "Galones", presentacion: "Unidad", costo: 0, venta: 0, stock: 0, categoria: "Pendiente", emoji: "⏳" },
+    { id: 996, codigo: "PEND-004", nombre: "Personales", corto: "Personales", presentacion: "Unidad", costo: 0, venta: 0, stock: 0, categoria: "Pendiente", emoji: "⏳" },
+    { id: 995, codigo: "PEND-005", nombre: "Kitel", corto: "Kitel", presentacion: "Unidad", costo: 0, venta: 0, stock: 0, categoria: "Pendiente", emoji: "⏳" },
+    { id: 994, codigo: "PEND-006", nombre: "Nuestro", corto: "Nuestro", presentacion: "Unidad", costo: 0, venta: 0, stock: 0, categoria: "Pendiente", emoji: "⏳" },
+    { id: 993, codigo: "PEND-007", nombre: "Siempre Libre", corto: "Siempre Libre", presentacion: "Unidad", costo: 0, venta: 0, stock: 0, categoria: "Pendiente", emoji: "⏳" }
+  ];
+
+  // Agrupar por categoría
+  const categorias = {};
+  PRODUCTOS.forEach(p => {
+    if (!categorias[p.categoria]) categorias[p.categoria] = [];
+    categorias[p.categoria].push(p);
+  });
+
+  // Orden de categorías
+  const ordenCategorias = ["Dulces", "Bebidas", "Cafés", "Aceites", "Fideos", "Limpieza", "Alimentos", "Snacks", "Medicinas", "Pendiente"];
+  
+  function getStockClass(stock) {
+    if (stock <= 0) return "stock-out";
+    if (stock < 10) return "stock-low";
+    return "stock-normal";
+  }
+
+  function getStockText(stock) {
+    if (stock <= 0) return "⚠️ AGOTADO";
+    if (stock < 10) return `📦 Quedan ${stock}`;
+    return `✅ Stock: ${stock}`;
+  }
+
+  function render() {
+    const app = document.getElementById("app");
+    app.innerHTML = "";
+    
+    for (let cat of ordenCategorias) {
+      if (!categorias[cat] || categorias[cat].length === 0) continue;
+      
+      const section = document.createElement("div");
+      section.className = "category";
+      section.innerHTML = `<h2 class="category-title">${cat} ${categorias[cat][0]?.emoji || ""}</h2>`;
+      
+      const grid = document.createElement("div");
+      grid.className = "products-grid";
+      
+      categorias[cat].forEach(p => {
+        const tienePrecio = p.venta > 0;
+        const precioMostrar = tienePrecio ? p.venta.toFixed(2) : "???";
+        const costoMostrar = p.costo > 0 ? `$${p.costo.toFixed(2)}` : "";
+        
+        const card = document.createElement("div");
+        card.className = "product-card";
+        
+        // Área de imagen (buscará NOMBRE_DEL_CODIGO.jpg)
+        const imgSrc = `${p.codigo}.jpg`;
+        
+        card.innerHTML = `
+          <div class="product-image" data-codigo="${p.codigo}">
+            <img src="${imgSrc}" alt="${p.nombre}" onerror="this.parentElement.innerHTML='<div class=\\'image-placeholder\\'><span>📷</span><span>Sin imagen</span></div><div class=\\'image-instruction\\'>📸 Nombre: ${p.codigo}.jpg</div>'">
+            <div class="image-instruction">📸 ${p.codigo}.jpg</div>
+          </div>
+          <div class="product-info">
+            <div class="product-name">
+              ${p.emoji || "🛒"} ${p.nombre}
+              <span class="product-code">${p.codigo}</span>
+            </div>
+            <div class="product-presentation">📦 ${p.presentacion}</div>
+            <div class="product-price">
+              <span class="price-sale">${tienePrecio ? "$" + precioMostrar : "⏳ Precio pendiente"}</span>
+              ${costoMostrar ? `<span class="price-cost">$${p.costo.toFixed(2)}</span>` : ""}
+            </div>
+            <div class="stock-badge ${getStockClass(p.stock)}">${getStockText(p.stock)}</div>
+            <div class="search-link">
+              <a href="https://www.google.com/search?q=${encodeURIComponent(p.nombre + " " + p.presentacion)}&tbm=isch" target="_blank">
+                🔍 Buscar imagen en Google
+              </a>
+            </div>
+          </div>
+        `;
+        
+        grid.appendChild(card);
+      });
+      
+      section.appendChild(grid);
+      app.appendChild(section);
+    }
+  }
+  
+  render();
+</script>
+</body>
+</html>
